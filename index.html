@@ -631,29 +631,29 @@ function buildPanel(idx) {
       <div class="card-body">
         <div class="field">
           <label>Datum letzter Besuch</label>
-          <input id="${idx}_datum_alt" type="text" enterkeyhint="next" autocomplete="off" placeholder="TT.MM.JJJJ" value="${s.datum_alt}" onchange="upd(${idx},'datum_alt',this.value)">
+          <input id="i_${idx}_datum_alt" type="text" enterkeyhint="next" autocomplete="off" placeholder="TT.MM.JJJJ" value="${s.datum_alt}" onchange="upd(${idx},'datum_alt',this.value)">
         </div>
         <div class="field">
           <label>Datum aktueller Besuch</label>
-          <input id="${idx}_datum_neu" type="text" enterkeyhint="next" autocomplete="off" placeholder="TT.MM.JJJJ" value="${s.datum_neu}" onchange="upd(${idx},'datum_neu',this.value)">
+          <input id="i_${idx}_datum_neu" type="text" enterkeyhint="next" autocomplete="off" placeholder="TT.MM.JJJJ" value="${s.datum_neu}" onchange="upd(${idx},'datum_neu',this.value)">
         </div>
       </div>
     </div>
     <div class="card">
       <div class="card-title"><span class="icon">⚙️</span> Dosierpumpe</div>
       <div class="card-body">
-        <div class="field"><label>Übersetzung Positiv</label><input id="${idx}_ueb_pos" type="number" inputmode="numeric" enterkeyhint="next" value="${s.ueb_pos}" oninput="upd(${idx},\'ueb_pos\',+this.value)"></div>
-        <div class="field"><label>Übersetzung Negativ</label><input id="${idx}_ueb_neg" type="number" inputmode="numeric" enterkeyhint="next" value="${s.ueb_neg}" oninput="upd(${idx},\'ueb_neg\',+this.value)"></div>
-        <div class="field"><label>Kontakt</label><input id="${idx}_kontakt" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.kontakt}" oninput="upd(${idx},\'kontakt\',+this.value)"></div>
-        <div class="field"><label>Dos. ml / 100 Hub</label><input id="${idx}_dos_ml_hub" type="number" inputmode="numeric" enterkeyhint="next" value="${s.dos_ml_hub}" oninput="upd(${idx},\'dos_ml_hub\',+this.value)"></div>
+        <div class="field"><label>Übersetzung Positiv</label><input id="i_${idx}_ueb_pos" type="number" inputmode="numeric" enterkeyhint="next" value="${s.ueb_pos}" oninput="upd(${idx},\'ueb_pos\',+this.value)"></div>
+        <div class="field"><label>Übersetzung Negativ</label><input id="i_${idx}_ueb_neg" type="number" inputmode="numeric" enterkeyhint="next" value="${s.ueb_neg}" oninput="upd(${idx},\'ueb_neg\',+this.value)"></div>
+        <div class="field"><label>Kontakt</label><input id="i_${idx}_kontakt" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.kontakt}" oninput="upd(${idx},\'kontakt\',+this.value)"></div>
+        <div class="field"><label>Dos. ml / 100 Hub</label><input id="i_${idx}_dos_ml_hub" type="number" inputmode="numeric" enterkeyhint="next" value="${s.dos_ml_hub}" oninput="upd(${idx},\'dos_ml_hub\',+this.value)"></div>
       </div>
     </div>
     <div class="card">
       <div class="card-title"><span class="icon">🔢</span> Zählerstand & Verbrauch</div>
       <div class="card-body">
-        <div class="field"><label>Zählerstand alt</label><input id="${idx}_zaehler_alt" type="number" inputmode="numeric" enterkeyhint="next" value="${s.zaehler_alt}" oninput="upd(${idx},\'zaehler_alt\',+this.value)"></div>
-        <div class="field"><label>Zählerstand neu</label><input id="${idx}_zaehler_neu" type="number" inputmode="numeric" enterkeyhint="next" value="${s.zaehler_neu}" oninput="upd(${idx},\'zaehler_neu\',+this.value)" placeholder="0 = aus Wasserverbrauch"></div>
-        <div class="field"><label>Produktverbrauch Eintragung (L)</label><input id="${idx}_prod_eintrag" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.prod_eintrag}" oninput="upd(${idx},\'prod_eintrag\',+this.value)"></div>
+        <div class="field"><label>Zählerstand alt</label><input id="i_${idx}_zaehler_alt" type="number" inputmode="numeric" enterkeyhint="next" value="${s.zaehler_alt}" oninput="upd(${idx},\'zaehler_alt\',+this.value)"></div>
+        <div class="field"><label>Zählerstand neu</label><input id="i_${idx}_zaehler_neu" type="number" inputmode="numeric" enterkeyhint="next" value="${s.zaehler_neu}" oninput="upd(${idx},\'zaehler_neu\',+this.value)" placeholder="0 = aus Wasserverbrauch"></div>
+        <div class="field"><label>Produktverbrauch Eintragung (L)</label><input id="i_${idx}_prod_eintrag" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.prod_eintrag}" oninput="upd(${idx},\'prod_eintrag\',+this.value)"></div>
       </div>
     </div>
   </div>
@@ -663,19 +663,19 @@ function buildPanel(idx) {
     <div class="card">
       <div class="card-title"><span class="icon">🚰</span> Speisewasser / Zusatzwasser</div>
       <div class="card-body">
-        <div class="field"><label>KS 4,3</label><input id="${idx}_ks_zw" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.ks_zw}" oninput="upd(${idx},\'ks_zw\',+this.value)"></div>
-        <div class="field"><label>LF Zusatzwasser (µS/cm)</label><input id="${idx}_lf_zw" type="number" inputmode="numeric" enterkeyhint="next" value="${s.lf_zw}" oninput="upd(${idx},\'lf_zw\',+this.value)"></div>
-        <div class="field"><label>°dH Zusatzwasser</label><input id="${idx}_dh_zw" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.dh_zw}" oninput="upd(${idx},\'dh_zw\',+this.value)"></div>
-        <div class="field"><label>Cl mg/l Zusatzwasser</label><input id="${idx}_cl_zw" type="number" inputmode="numeric" enterkeyhint="next" value="${s.cl_zw}" oninput="upd(${idx},\'cl_zw\',+this.value)"></div>
-        <div class="field"><label>Soll-LF (µS/cm)</label><input id="${idx}_soll_lf" type="number" inputmode="numeric" enterkeyhint="next" value="${s.soll_lf}" oninput="upd(${idx},\'soll_lf\',+this.value)"></div>
+        <div class="field"><label>KS 4,3</label><input id="i_${idx}_ks_zw" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.ks_zw}" oninput="upd(${idx},\'ks_zw\',+this.value)"></div>
+        <div class="field"><label>LF Zusatzwasser (µS/cm)</label><input id="i_${idx}_lf_zw" type="number" inputmode="numeric" enterkeyhint="next" value="${s.lf_zw}" oninput="upd(${idx},\'lf_zw\',+this.value)"></div>
+        <div class="field"><label>°dH Zusatzwasser</label><input id="i_${idx}_dh_zw" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.dh_zw}" oninput="upd(${idx},\'dh_zw\',+this.value)"></div>
+        <div class="field"><label>Cl mg/l Zusatzwasser</label><input id="i_${idx}_cl_zw" type="number" inputmode="numeric" enterkeyhint="next" value="${s.cl_zw}" oninput="upd(${idx},\'cl_zw\',+this.value)"></div>
+        <div class="field"><label>Soll-LF (µS/cm)</label><input id="i_${idx}_soll_lf" type="number" inputmode="numeric" enterkeyhint="next" value="${s.soll_lf}" oninput="upd(${idx},\'soll_lf\',+this.value)"></div>
       </div>
     </div>
     <div class="card">
       <div class="card-title"><span class="icon">🔄</span> Umlaufwasser (IST-Werte)</div>
       <div class="card-body">
-        <div class="field"><label>IST LF Umlaufwasser (µS/cm)</label><input id="${idx}_lf_uw" type="number" inputmode="numeric" enterkeyhint="next" value="${s.lf_uw}" oninput="upd(${idx},\'lf_uw\',+this.value)"></div>
-        <div class="field"><label>°dH Umlaufwasser</label><input id="${idx}_dh_uw" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.dh_uw}" oninput="upd(${idx},\'dh_uw\',+this.value)"></div>
-        <div class="field"><label>Cl mg/l Umlaufwasser</label><input id="${idx}_cl_uw" type="number" inputmode="numeric" enterkeyhint="next" value="${s.cl_uw}" oninput="upd(${idx},\'cl_uw\',+this.value)"></div>
+        <div class="field"><label>IST LF Umlaufwasser (µS/cm)</label><input id="i_${idx}_lf_uw" type="number" inputmode="numeric" enterkeyhint="next" value="${s.lf_uw}" oninput="upd(${idx},\'lf_uw\',+this.value)"></div>
+        <div class="field"><label>°dH Umlaufwasser</label><input id="i_${idx}_dh_uw" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.dh_uw}" oninput="upd(${idx},\'dh_uw\',+this.value)"></div>
+        <div class="field"><label>Cl mg/l Umlaufwasser</label><input id="i_${idx}_cl_uw" type="number" inputmode="numeric" enterkeyhint="next" value="${s.cl_uw}" oninput="upd(${idx},\'cl_uw\',+this.value)"></div>
       </div>
     </div>
   </div>
@@ -687,25 +687,25 @@ function buildPanel(idx) {
       <div class="card-body">
         <div class="result-row">
           <span class="result-label">Eindickung IST (nach LF)</span>
-          <span class="result-value" style="color:${r.ez_ist>=2&&r.ez_ist<=4?'var(--ok)':r.ez_ist<1.5||r.ez_ist>5?'var(--err)':'var(--warn)'}">
+          <span class="result-value" id="r_${idx}_ez_ist_0" style="color:${r.ez_ist>=2&&r.ez_ist<=4?'var(--ok)':r.ez_ist<1.5||r.ez_ist>5?'var(--err)':'var(--warn)'}">
             ${fmt(r.ez_lf,2)}<span class="result-unit">fach</span>
           </span>
         </div>
         <div class="result-row">
           <span class="result-label">Eindickung nach °dH</span>
-          <span class="result-value">${fmt(r.ez_dh,2)}<span class="result-unit">fach</span></span>
+          <span class="result-value" id="r_${idx}_ez_dh_1">${fmt(r.ez_dh,2)}<span class="result-unit">fach</span></span>
         </div>
         <div class="result-row">
           <span class="result-label">Eindickung nach Cl</span>
-          <span class="result-value">${fmt(r.ez_cl,2)}<span class="result-unit">fach</span></span>
+          <span class="result-value" id="r_${idx}_ez_cl_2">${fmt(r.ez_cl,2)}<span class="result-unit">fach</span></span>
         </div>
         <div class="result-row">
           <span class="result-label">Eindickung SOLL</span>
-          <span class="result-value">${fmt(r.ez_soll,2)}<span class="result-unit">fach</span></span>
+          <span class="result-value" id="r_${idx}_ez_soll_3">${fmt(r.ez_soll,2)}<span class="result-unit">fach</span></span>
         </div>
         <div class="result-row">
           <span class="result-label">% der SOLL-LF</span>
-          <span class="result-value" style="color:${r.pct_soll_lf*100>105?'var(--err)':'inherit'}">${fmt(r.pct_soll_lf*100,1)}<span class="result-unit">%</span></span>
+          <span class="result-value" id="r_${idx}_pct_soll_lf_4" style="color:${r.pct_soll_lf*100>105?'var(--err)':'inherit'}">${fmt(r.pct_soll_lf*100,1)}<span class="result-unit">%</span></span>
         </div>
         <div style="margin-top:8px;">
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Sollbereich 2–4</div>
@@ -725,30 +725,30 @@ function buildPanel(idx) {
       <div class="card-body">
         <div class="result-row">
           <span class="result-label">Zusatzwasser</span>
-          <span class="result-value">${fmt(r.zusatzwasser,1)}<span class="result-unit">m³</span></span>
+          <span class="result-value" id="r_${idx}_zusatzwasser_5">${fmt(r.zusatzwasser,1)}<span class="result-unit">m³</span></span>
         </div>
         <div class="result-row">
           <span class="result-label">Abwasser</span>
-          <span class="result-value">${fmt(r.abwasser,1)}<span class="result-unit">m³</span></span>
+          <span class="result-value" id="r_${idx}_abwasser_6">${fmt(r.abwasser,1)}<span class="result-unit">m³</span></span>
         </div>
         <div class="result-row">
           <span class="result-label">Verdunstung</span>
-          <span class="result-value">${fmt(r.verdunstung,1)}<span class="result-unit">m³</span></span>
+          <span class="result-value" id="r_${idx}_verdunstung_7">${fmt(r.verdunstung,1)}<span class="result-unit">m³</span></span>
         </div>
         <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
         <div class="result-row">
           <span class="result-label">KH ZW (scheinbar)</span>
-          <span class="result-value">${fmt(r.kh_zw_scheinbar,1)}<span class="result-unit">°KH</span></span>
+          <span class="result-value" id="r_${idx}_kh_zw_scheinbar_8">${fmt(r.kh_zw_scheinbar,1)}<span class="result-unit">°KH</span></span>
         </div>
         <div class="result-row">
           <span class="result-label">KH UW real (max. 20)</span>
-          <span class="result-value" style="color:${r.kh_uw_real>20?'var(--err)':'var(--text)'}">
+          <span class="result-value" id="r_${idx}_kh_uw_real_9" style="color:${r.kh_uw_real>20?'var(--err)':'var(--text)'}">
             ${fmt(r.kh_uw_real,1)}<span class="result-unit">°KH</span>
           </span>
         </div>
         <div class="result-row">
           <span class="result-label">KH bei SOLL-LF</span>
-          <span class="result-value" style="color:${r.kh_bei_soll_lf>18.1?'var(--err)':'var(--text)'}">
+          <span class="result-value" id="r_${idx}_kh_bei_soll_lf_10" style="color:${r.kh_bei_soll_lf>18.1?'var(--err)':'var(--text)'}">
             ${fmt(r.kh_bei_soll_lf,1)}<span class="result-unit">°KH</span>
           </span>
         </div>
@@ -770,25 +770,25 @@ function buildPanel(idx) {
         </div>
         <div class="result-row">
           <span class="result-label">Prod. ml/m³ Nachspeisung</span>
-          <span class="result-value">${fmt(r.prod_ml_m3_ns,0)}<span class="result-unit">ml/m³</span></span>
+          <span class="result-value" id="r_${idx}_prod_ml_m_11">${fmt(r.prod_ml_m3_ns,0)}<span class="result-unit">ml/m³</span></span>
         </div>
         <div class="result-row">
           <span class="result-label">Prod. ml/m³ Umlauf IST</span>
-          <span class="result-value">${fmt(r.prod_ml_m3_ul,0)}<span class="result-unit">ml/m³</span></span>
+          <span class="result-value" id="r_${idx}_prod_ml_m_12">${fmt(r.prod_ml_m3_ul,0)}<span class="result-unit">ml/m³</span></span>
         </div>
         <div class="result-row">
           <span class="result-label">Verbrauch rechnerisch</span>
-          <span class="result-value">${fmt(r.prod_verbrauch_l,2)}<span class="result-unit">L</span></span>
+          <span class="result-value" id="r_${idx}_prod_verbrauch_l_13">${fmt(r.prod_verbrauch_l,2)}<span class="result-unit">L</span></span>
         </div>
         <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
         <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Nach Eintragung</div>
         <div class="result-row">
           <span class="result-label">ml/m³ Nachspeisung</span>
-          <span class="result-value">${fmt(r.prod_ns_eintrag,0)}<span class="result-unit">ml/m³</span></span>
+          <span class="result-value" id="r_${idx}_prod_ns_eintrag_14">${fmt(r.prod_ns_eintrag,0)}<span class="result-unit">ml/m³</span></span>
         </div>
         <div class="result-row">
           <span class="result-label">ml/m³ Umlauf SOLL</span>
-          <span class="result-value" style="color:${r.prod_ul_eintrag_soll>=160&&r.prod_ul_eintrag_soll<=250?'var(--ok)':r.prod_ul_eintrag_soll<160?'var(--err)':'var(--warn)'}">
+          <span class="result-value" id="r_${idx}_prod_ul_eintrag_soll_15" style="color:${r.prod_ul_eintrag_soll>=160&&r.prod_ul_eintrag_soll<=250?'var(--ok)':r.prod_ul_eintrag_soll<160?'var(--err)':'var(--warn)'}">
             ${fmt(r.prod_ul_eintrag_soll,0)}<span class="result-unit">ml/m³</span>
           </span>
         </div>
@@ -801,12 +801,12 @@ function buildPanel(idx) {
     <div class="card">
       <div class="card-title"><span class="icon">🦠</span> Biozid – Eingabe</div>
       <div class="card-body">
-        <div class="field"><label>Datum letztes BTB</label><input id="${idx}_datum_btb" type="text" enterkeyhint="next" autocomplete="off" placeholder="TT.MM.JJJJ" value="${s.datum_btb||s.datum_alt}" onfocus="if(!this.value){this.value=state[${idx}].datum_alt; upd(${idx},'datum_btb',this.value);}" onchange="upd(${idx},'datum_btb',this.value)"></div>
-        <div class="field"><label>Systemvolumen (m³)</label><input id="${idx}_sys_vol" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.sys_vol}" oninput="upd(${idx},\'sys_vol\',+this.value)"></div>
-        <div class="field"><label>Dosiermenge pro Min (ml)</label><input id="${idx}_dos_min_ml" type="number" inputmode="numeric" enterkeyhint="next" value="${s.dos_min_ml}" oninput="upd(${idx},\'dos_min_ml\',+this.value)"></div>
-        <div class="field"><label>Dosierung Minuten</label><input id="${idx}_dos_dauer" type="number" inputmode="numeric" enterkeyhint="next" value="${s.dos_dauer}" oninput="upd(${idx},\'dos_dauer\',+this.value)"></div>
-        <div class="field"><label>Dosierungen pro Woche</label><input id="${idx}_dos_freq" type="number" inputmode="numeric" enterkeyhint="next" value="${s.dos_freq}" oninput="upd(${idx},\'dos_freq\',+this.value)"></div>
-        <div class="field"><label>Soll ml/m³ (100–400, normal ~300)</label><input id="${idx}_dos_soll_ml" type="number" inputmode="numeric" enterkeyhint="next" value="${s.dos_soll_ml}" oninput="upd(${idx},\'dos_soll_ml\',+this.value)"></div>
+        <div class="field"><label>Datum letztes BTB</label><input id="i_${idx}_datum_btb" type="text" enterkeyhint="next" autocomplete="off" placeholder="TT.MM.JJJJ" value="${s.datum_btb||s.datum_alt}" onfocus="if(!this.value){this.value=state[${idx}].datum_alt; upd(${idx},'datum_btb',this.value);}" onchange="upd(${idx},'datum_btb',this.value)"></div>
+        <div class="field"><label>Systemvolumen (m³)</label><input id="i_${idx}_sys_vol" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.sys_vol}" oninput="upd(${idx},\'sys_vol\',+this.value)"></div>
+        <div class="field"><label>Dosiermenge pro Min (ml)</label><input id="i_${idx}_dos_min_ml" type="number" inputmode="numeric" enterkeyhint="next" value="${s.dos_min_ml}" oninput="upd(${idx},\'dos_min_ml\',+this.value)"></div>
+        <div class="field"><label>Dosierung Minuten</label><input id="i_${idx}_dos_dauer" type="number" inputmode="numeric" enterkeyhint="next" value="${s.dos_dauer}" oninput="upd(${idx},\'dos_dauer\',+this.value)"></div>
+        <div class="field"><label>Dosierungen pro Woche</label><input id="i_${idx}_dos_freq" type="number" inputmode="numeric" enterkeyhint="next" value="${s.dos_freq}" oninput="upd(${idx},\'dos_freq\',+this.value)"></div>
+        <div class="field"><label>Soll ml/m³ (100–400, normal ~300)</label><input id="i_${idx}_dos_soll_ml" type="number" inputmode="numeric" enterkeyhint="next" value="${s.dos_soll_ml}" oninput="upd(${idx},\'dos_soll_ml\',+this.value)"></div>
       </div>
     </div>
     <div class="card">
@@ -814,38 +814,38 @@ function buildPanel(idx) {
       <div class="card-body">
         <div class="result-row">
           <span class="result-label">Tage seit letztem BTB</span>
-          <span class="result-value">${r.tage_seit_btb}<span class="result-unit">Tage</span></span>
+          <span class="result-value" id="r_${idx}_tage_seit_btb_16">${r.tage_seit_btb}<span class="result-unit">Tage</span></span>
         </div>
         <div class="result-row">
           <span class="result-label">Dos. pro Dosierung (IST)</span>
-          <span class="result-value">${fmt(r.bio_dos_pro_dos_l,2)}<span class="result-unit">L</span></span>
+          <span class="result-value" id="r_${idx}_bio_dos_pro_dos_l_17">${fmt(r.bio_dos_pro_dos_l,2)}<span class="result-unit">L</span></span>
         </div>
         <div class="result-row">
           <span class="result-label">Dos. pro Woche (IST)</span>
-          <span class="result-value">${fmt(r.bio_dos_pro_woche,2)}<span class="result-unit">L</span></span>
+          <span class="result-value" id="r_${idx}_bio_dos_pro_woche_18">${fmt(r.bio_dos_pro_woche,2)}<span class="result-unit">L</span></span>
         </div>
         <div class="result-row">
           <span class="result-label">ml/m³ Systemvolumen</span>
-          <span class="result-value" style="color:${r.bio_ml_m3>=100&&r.bio_ml_m3<=400?'var(--ok)':'var(--warn)'}">
+          <span class="result-value" id="r_${idx}_bio_ml_m_19" style="color:${r.bio_ml_m3>=100&&r.bio_ml_m3<=400?'var(--ok)':'var(--warn)'}">
             ${fmt(r.bio_ml_m3,0)}<span class="result-unit">ml/m³</span>
           </span>
         </div>
         <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
         <div class="result-row">
           <span class="result-label">Verbrauch seit BTB IST</span>
-          <span class="result-value">${fmt(r.bio_seit_btb_ist,1)}<span class="result-unit">L</span></span>
+          <span class="result-value" id="r_${idx}_bio_seit_btb_ist_20">${fmt(r.bio_seit_btb_ist,1)}<span class="result-unit">L</span></span>
         </div>
         <div class="result-row">
           <span class="result-label">Verbrauch seit BTB SOLL</span>
-          <span class="result-value">${fmt(r.bio_seit_btb_soll,1)}<span class="result-unit">L</span></span>
+          <span class="result-value" id="r_${idx}_bio_seit_btb_soll_21">${fmt(r.bio_seit_btb_soll,1)}<span class="result-unit">L</span></span>
         </div>
         <div class="result-row">
           <span class="result-label">Soll-Dauer pro Dosierung</span>
-          <span class="result-value">${fmt(r.bio_dos_dauer_soll,0)}<span class="result-unit">min</span></span>
+          <span class="result-value" id="r_${idx}_bio_dos_dauer_soll_22">${fmt(r.bio_dos_dauer_soll,0)}<span class="result-unit">min</span></span>
         </div>
         <div class="result-row">
           <span class="result-label">Soll Dos. pro Woche</span>
-          <span class="result-value">${fmt(r.bio_dos_soll_pro_woche,2)}<span class="result-unit">L</span></span>
+          <span class="result-value" id="r_${idx}_bio_dos_soll_pro_woche_23">${fmt(r.bio_dos_soll_pro_woche,2)}<span class="result-unit">L</span></span>
         </div>
       </div>
     </div>
@@ -873,6 +873,61 @@ function buildPanel(idx) {
     </div>
   </div>
   `;
+}
+
+
+function updateResults(idx) {
+  const s = state[idx];
+  const r = calc(s);
+  
+  const set = (id, html) => { const el = document.getElementById(id); if(el) el.innerHTML = html; };
+  const setStyle = (id, style) => { const el = document.getElementById(id); if(el) el.style.color = style; };
+
+  set(`r_${idx}_ez_ist_0`,    `${fmt(r.ez_lf,2)}<span class="result-unit">fach</span>`);
+  set(`r_${idx}_ez_dh_1`,     `${fmt(r.ez_dh,2)}<span class="result-unit">fach</span>`);
+  set(`r_${idx}_ez_cl_2`,     `${fmt(r.ez_cl,2)}<span class="result-unit">fach</span>`);
+  set(`r_${idx}_ez_soll_3`,   `${fmt(r.ez_soll,2)}<span class="result-unit">fach</span>`);
+  
+  const pct = r.pct_soll_lf*100;
+  set(`r_${idx}_pct_soll_lf_4`, `${fmt(pct,1)}<span class="result-unit">%</span>`);
+  setStyle(`r_${idx}_pct_soll_lf_4`, pct > 105 ? 'var(--err)' : '');
+
+  set(`r_${idx}_zusatzwasser_5`,  `${fmt(r.zusatzwasser,1)}<span class="result-unit">m³</span>`);
+  set(`r_${idx}_abwasser_6`,      `${fmt(r.abwasser,1)}<span class="result-unit">m³</span>`);
+  set(`r_${idx}_verdunstung_7`,   `${fmt(r.verdunstung,1)}<span class="result-unit">m³</span>`);
+  set(`r_${idx}_kh_zw_scheinbar_8`, `${fmt(r.kh_zw_scheinbar,1)}<span class="result-unit">°KH</span>`);
+  set(`r_${idx}_kh_uw_real_9`,    `${fmt(r.kh_uw_real,1)}<span class="result-unit">°KH</span>`);
+  set(`r_${idx}_kh_bei_soll_lf_10`, `${fmt(r.kh_bei_soll_lf,1)}<span class="result-unit">°KH</span>`);
+  set(`r_${idx}_prod_ml_m_11`,    `${fmt(r.prod_ml_m3_ns,1)}<span class="result-unit">ml/m³</span>`);
+  set(`r_${idx}_prod_ml_m_12`,    `${fmt(r.prod_ml_m3_ul,1)}<span class="result-unit">ml/m³</span>`);
+  set(`r_${idx}_prod_verbrauch_l_13`, `${fmt(r.prod_verbrauch_l,1)}<span class="result-unit">L</span>`);
+  set(`r_${idx}_prod_ns_eintrag_14`,  `${fmt(r.prod_ns_eintrag,1)}<span class="result-unit">ml/m³</span>`);
+  set(`r_${idx}_prod_ul_eintrag_soll_15`, `${fmt(r.prod_ul_eintrag_soll,1)}<span class="result-unit">ml/m³</span>`);
+  set(`r_${idx}_tage_seit_btb_16`, `${isNaN(r.tage_seit_btb)?'-':r.tage_seit_btb}<span class="result-unit">Tage</span>`);
+  set(`r_${idx}_bio_dos_pro_dos_l_17`, `${fmt(r.bio_dos_pro_dos_l,3)}<span class="result-unit">L/Dos.</span>`);
+  set(`r_${idx}_bio_dos_pro_woche_18`, `${fmt(r.bio_dos_pro_woche,2)}<span class="result-unit">L/Woche</span>`);
+  set(`r_${idx}_bio_ml_m_19`,     `${fmt(r.bio_ml_m3,1)}<span class="result-unit">ml/m³</span>`);
+  set(`r_${idx}_bio_seit_btb_ist_20`, `${fmt(r.bio_seit_btb_ist,2)}<span class="result-unit">L</span>`);
+  set(`r_${idx}_bio_seit_btb_soll_21`,`${fmt(r.bio_seit_btb_soll,2)}<span class="result-unit">L</span>`);
+  set(`r_${idx}_bio_dos_dauer_soll_22`,`${fmt(r.bio_dos_dauer_soll,1)}<span class="result-unit">min</span>`);
+  set(`r_${idx}_bio_dos_soll_pro_woche_23`,`${fmt(r.bio_dos_soll_pro_woche,2)}<span class="result-unit">L/Woche</span>`);
+
+  // Eindickungsbalken Marker
+  const marker = document.querySelector(`#r_${idx}_ez_ist_0`)?.closest('.card')?.querySelector('.eindickung-marker');
+  if(marker) marker.style.left = Math.min(95, Math.max(5,(r.ez_ist/6)*100)) + '%';
+
+  // Warnungen
+  const warnEl = document.getElementById(`w_${idx}`);
+  if(warnEl) warnEl.innerHTML = r.warnings.length === 0
+    ? '<span class="badge badge-ok">✅ Alle Werte OK</span>'
+    : r.warnings.map(w=>`<span class="badge badge-${w.sev}">${w.msg}</span>`).join('');
+
+  // Tab-Status aktualisieren
+  const tab = document.querySelector(`.tab:nth-child(${idx+1}) .status-dot`);
+  if(tab) {
+    const maxSev = r.warnings.some(w=>w.sev==='err') ? 'err' : r.warnings.some(w=>w.sev==='warn') ? 'warn' : 'ok';
+    tab.className = `status-dot ${maxSev}`;
+  }
 }
 
 function render() {
@@ -932,7 +987,7 @@ function renderResults(idx) {
   set(`res_${idx}_tage_btb`,     isNaN(r.tage_btb)      ? '-' : r.tage_btb);
 
   // Warnungen aktualisieren
-  const warnEl = document.getElementById(`warnings_${idx}`);
+  const warnEl = document.getElementById(`w_${idx}`);
   if (warnEl) {
     warnEl.innerHTML = r.warnings.length === 0
       ? '<span class="badge badge-ok">✅ Alle Werte OK</span>'
@@ -969,20 +1024,8 @@ function upd(idx, key, val) {
     state[idx]._prev_datum_alt = val;
   }
   // Debounce: render erst nach 400ms Pause - Cursor bleibt ruhig beim Tippen
-  clearTimeout(upd._timer);
-  upd._timer = setTimeout(() => {
-    const active = document.activeElement;
-    const activeId = active ? active.id : null;
-    const selEnd = (active && active.value) ? active.value.length : 0;
-    render();
-    if (activeId) {
-      const el = document.getElementById(activeId);
-      if (el) {
-        el.focus();
-        try { el.setSelectionRange(selEnd, selEnd); } catch(e){}
-      }
-    }
-  }, 2000);
+  // Nur Ergebnisse aktualisieren - Inputs werden NICHT angefasst
+  updateResults(idx);
 }
 
 // ── VERLAUF ───────────────────────────────────────────────────────────────
