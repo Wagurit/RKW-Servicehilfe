@@ -568,30 +568,59 @@ function calc(s) {
   // Chlorid
   const cl_uw = parseFloat(s.cl_uw) || 0;
   if (cl_uw > 250) r.warnings.push({id:'cl250', text:'Cl Legierter Stahl > 250 mg/l', sev:'err'});
-  else if (cl_uw > 200) r.warnings.push({id:'cl200', text:'Cl Edelstahl > 200 mg/l', sev:'err'});
-  else if (cl_uw > 150) r.warnings.push({id:'cl150', text:'Cl Schwarzstahl > 150 mg/l', sev:'warn'});
-  else r.warnings.push({id:'cl_ok', text:'Chlorid i.O.', sev:'ok'});
+  if (cl_uw > 200) r.warnings.push({id:'cl200', text:'Cl Edelstahl > 200 mg/l', sev:'err'});
+  if (cl_uw > 150) r.warnings.push({id:'cl150', text:'Cl Schwarzstahl > 150 mg/l', sev:'warn'});
+  if (cl_uw > 0 && cl_uw <= 150) r.warnings.push({id:'cl_ok', text:'Chlorid i.O.', sev:'ok'});
 
   // Dosierung ausreichend?
-  const prod_check = r.prod_bei_ez_lf;
-  if (prod_check < 160) r.warnings.push({id:'dos_lf', text:'Dos. zu niedrig (nach LF) < 160 ml/m³ – anheben!', sev:'err'});
-  else r.warnings.push({id:'dos_lf_ok', text:'Dosierung nach LF i.O.', sev:'ok'});
+  // Prüfung nur wenn Produktwert berechnet wurde (prod_ml_m3_ns > 0)
+  if (r.prod_ml_m3_ns > 0) {
+    // Nach LF - nur wenn LF-Werte vorhanden
+    if (s.lf_zw && s.lf_uw) {
+      if (r.prod_bei_ez_lf < 160) r.warnings.push({id:'dos_lf', text:'Dos. zu niedrig (nach LF) < 160 ml/m³ – anheben!', sev:'err'});
+      else r.warnings.push({id:'dos_lf_ok', text:'Dosierung nach LF i.O.', sev:'ok'});
+    } else {
+      // Keine LF-Werte: direkt prod_ml_m3_ns prüfen
+      if (r.prod_ml_m3_ns < 160) r.warnings.push({id:'dos_lf', text:'Dos. zu niedrig (nach Einstellung) < 160 ml/m³ – anheben!', sev:'err'});
+      else r.warnings.push({id:'dos_lf_ok', text:'Dosierung nach Einstellung i.O.', sev:'ok'});
+    }
 
-  if (r.prod_bei_ez_dh < 160) r.warnings.push({id:'dos_dh', text:'Dos. zu niedrig (nach °dH) < 160 ml/m³', sev:'warn'});
-  else r.warnings.push({id:'dos_dh_ok', text:'Dosierung nach °dH i.O.', sev:'ok'});
+    // Nach dH - nur wenn dH-Werte vorhanden
+    if (s.dh_zw && s.dh_uw) {
+      if (r.prod_bei_ez_dh < 160) r.warnings.push({id:'dos_dh', text:'Dos. zu niedrig (nach °dH) < 160 ml/m³', sev:'warn'});
+      else r.warnings.push({id:'dos_dh_ok', text:'Dosierung nach °dH i.O.', sev:'ok'});
+    }
 
-  if (r.prod_bei_ez_cl < 160) r.warnings.push({id:'dos_cl', text:'Dos. zu niedrig (nach Cl) < 160 ml/m³', sev:'warn'});
-  else r.warnings.push({id:'dos_cl_ok', text:'Dosierung nach Cl i.O.', sev:'ok'});
+    // Nach Cl - nur wenn Cl-Werte vorhanden
+    if (s.cl_zw && s.cl_uw) {
+      if (r.prod_bei_ez_cl < 160) r.warnings.push({id:'dos_cl', text:'Dos. zu niedrig (nach Cl) < 160 ml/m³', sev:'warn'});
+      else r.warnings.push({id:'dos_cl_ok', text:'Dosierung nach Cl i.O.', sev:'ok'});
+    }
+  } // Ende prod_ml_m3_ns > 0
 
   // Eindickung Plausibilität
-  if (r.ez_cl > 1.2 * r.ez_lf) r.warnings.push({id:'cl_verf', text:'Chlorid verfälscht? EZ Cl >> EZ LF', sev:'warn'});
-  if (r.ez_dh > r.ez_cl * 1.1) r.warnings.push({id:'dh_schwank', text:'ZW °dH Schwankung', sev:'warn'});
+  // Plausibilitätsprüfung: alle 3 EZ-Werte dürfen max. 0,3 voneinander abweichen
+  const ez_vals = [r.ez_lf, r.ez_dh, r.ez_cl].filter(v => v > 0);
+  const ez_max = Math.max(...ez_vals);
+  const ez_min = Math.min(...ez_vals);
+  const ez_spread = ez_max - ez_min;
+
+  // Härteausfällung: Cl > dH (unabhängig von Plausibilität)
   if (r.ez_cl > r.ez_dh + 0.1) r.warnings.push({id:'ausfaell', text:'Ggf. Ausfällung – Härte fehlt (Cl/°dH)', sev:'err'});
-  else r.warnings.push({id:'ez_plaus', text:'EZ Eindickung plausibel', sev:'ok'});
+
+  if (s.lf_zw && s.lf_uw && s.dh_zw && s.dh_uw && s.cl_zw && s.cl_uw) {
+    if (ez_spread > 0.3) {
+      r.warnings.push({id:'ez_abw', text:'Abweichende Eindickung LF/Cl/°dH', sev:'warn'});
+    } else {
+      r.warnings.push({id:'ez_plaus', text:'EZ Eindickung plausibel', sev:'ok'});
+    }
+  }
 
   // Karbonathärte
-  if (r.kh_bei_soll_lf > 18.1) r.warnings.push({id:'kh_ein', text:'Ggf. Eindickung reduzieren (KH > 18)', sev:'warn'});
-  else r.warnings.push({id:'kh_ok', text:'Karbonathärte i.O.', sev:'ok'});
+  if (s.ks_zw) {
+    if (r.kh_bei_soll_lf > 18.1) r.warnings.push({id:'kh_ein', text:'Ggf. Eindickung reduzieren (KH > 18)', sev:'warn'});
+    else r.warnings.push({id:'kh_ok', text:'Karbonathärte i.O.', sev:'ok'});
+  }
 
   const dh_uw_num = parseFloat(s.dh_uw) || 0;
   if (r.kh_uw_real > dh_uw_num * 1.07) r.warnings.push({id:'kh_dh', text:'°KH UW > °dH UW', sev:'warn'});
@@ -599,12 +628,18 @@ function calc(s) {
   // Eindickung Bereich
   if (r.ez_ist < 2) r.warnings.push({id:'ez_low', text:'Eindickung IST < 2 (zu niedrig)', sev:'warn'});
   else if (r.ez_ist > 4) r.warnings.push({id:'ez_high', text:'Eindickung IST > 4 (zu hoch)', sev:'warn'});
-  else r.warnings.push({id:'ez_range', text:'Eindickung im Sollbereich 2–4', sev:'ok'});
+  else if (s.lf_zw && s.lf_uw) r.warnings.push({id:'ez_range', text:'Eindickung im Sollbereich 2–4', sev:'ok'});
 
   // Produkt ml/m³ Umlauf Bereich
-  if (r.prod_ml_m3_ul_soll < 160) r.warnings.push({id:'prod_low', text:'Produkt < 160 ml/m³ Umlauf – zu wenig', sev:'err'});
-  else if (r.prod_ml_m3_ul_soll > 250) r.warnings.push({id:'prod_high', text:'Produkt > 250 ml/m³ Umlauf – zu viel', sev:'warn'});
-  else r.warnings.push({id:'prod_ok', text:'Produktkonzentration 160–250 ml/m³ i.O.', sev:'ok'});
+  // Rechnerisch (über Pumpe) oder nach Eintragung (über Zählerstand)
+  const prod_ul_check = r.prod_ml_m3_ns > 0 ? r.prod_ml_m3_ul_soll
+                      : r.prod_ul_eintrag_soll > 0 ? r.prod_ul_eintrag_soll
+                      : null;
+  if (prod_ul_check !== null) {
+    if (prod_ul_check < 160) r.warnings.push({id:'prod_low', text:'Produkt < 160 ml/m³ Umlauf – zu wenig', sev:'err'});
+    else if (prod_ul_check > 250) r.warnings.push({id:'prod_high', text:'Produkt > 250 ml/m³ Umlauf – zu viel', sev:'warn'});
+    else r.warnings.push({id:'prod_ok', text:'Produktkonzentration 160–250 ml/m³ i.O.', sev:'ok'});
+  }
 
   return r;
 }
@@ -638,27 +673,7 @@ function buildPanel(idx) {
           <input id="i_${idx}_datum_neu" type="text" enterkeyhint="next" autocomplete="off" placeholder="TT.MM.JJJJ" value="${s.datum_neu}" onchange="upd(${idx},'datum_neu',this.value)">
         </div>
       </div>
-    </div>
-    <div class="card">
-      <div class="card-title"><span class="icon">⚙️</span> Dosierpumpe</div>
-      <div class="card-body">
-        <div class="field"><label>Übersetzung Positiv</label><input id="i_${idx}_ueb_pos" type="number" inputmode="numeric" enterkeyhint="next" value="${s.ueb_pos}" oninput="upd(${idx},\'ueb_pos\',+this.value)"></div>
-        <div class="field"><label>Übersetzung Negativ</label><input id="i_${idx}_ueb_neg" type="number" inputmode="numeric" enterkeyhint="next" value="${s.ueb_neg}" oninput="upd(${idx},\'ueb_neg\',+this.value)"></div>
-        <div class="field"><label>Kontakt</label><input id="i_${idx}_kontakt" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.kontakt}" oninput="upd(${idx},\'kontakt\',+this.value)"></div>
-        <div class="field"><label>Dos. ml / 100 Hub</label><input id="i_${idx}_dos_ml_hub" type="number" inputmode="numeric" enterkeyhint="next" value="${s.dos_ml_hub}" oninput="upd(${idx},\'dos_ml_hub\',+this.value)"></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title"><span class="icon">🔢</span> Zählerstand & Verbrauch</div>
-      <div class="card-body">
-        <div class="field"><label>Zählerstand alt</label><input id="i_${idx}_zaehler_alt" type="number" inputmode="numeric" enterkeyhint="next" value="${s.zaehler_alt}" oninput="upd(${idx},\'zaehler_alt\',+this.value)"></div>
-        <div class="field"><label>Zählerstand neu</label><input id="i_${idx}_zaehler_neu" type="number" inputmode="numeric" enterkeyhint="next" value="${s.zaehler_neu}" oninput="upd(${idx},\'zaehler_neu\',+this.value)" placeholder="0 = aus Wasserverbrauch"></div>
-        <div class="field"><label>Produktverbrauch Eintragung (L)</label><input id="i_${idx}_prod_eintrag" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.prod_eintrag}" oninput="upd(${idx},\'prod_eintrag\',+this.value)"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="section-label">💧 Wasserwerte</div>
+    </div>  <div class="section-label">💧 Wasserwerte</div>
   <div class="grid-2">
     <div class="card">
       <div class="card-title"><span class="icon">🚰</span> Speisewasser / Zusatzwasser</div>
@@ -667,20 +682,41 @@ function buildPanel(idx) {
         <div class="field"><label>LF Zusatzwasser (µS/cm)</label><input id="i_${idx}_lf_zw" type="number" inputmode="numeric" enterkeyhint="next" value="${s.lf_zw}" oninput="upd(${idx},\'lf_zw\',+this.value)"></div>
         <div class="field"><label>°dH Zusatzwasser</label><input id="i_${idx}_dh_zw" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.dh_zw}" oninput="upd(${idx},\'dh_zw\',+this.value)"></div>
         <div class="field"><label>Cl mg/l Zusatzwasser</label><input id="i_${idx}_cl_zw" type="number" inputmode="numeric" enterkeyhint="next" value="${s.cl_zw}" oninput="upd(${idx},\'cl_zw\',+this.value)"></div>
-        <div class="field"><label>Soll-LF (µS/cm)</label><input id="i_${idx}_soll_lf" type="number" inputmode="numeric" enterkeyhint="next" value="${s.soll_lf}" oninput="upd(${idx},\'soll_lf\',+this.value)"></div>
       </div>
     </div>
     <div class="card">
       <div class="card-title"><span class="icon">🔄</span> Umlaufwasser (IST-Werte)</div>
       <div class="card-body">
         <div class="field"><label>IST LF Umlaufwasser (µS/cm)</label><input id="i_${idx}_lf_uw" type="number" inputmode="numeric" enterkeyhint="next" value="${s.lf_uw}" oninput="upd(${idx},\'lf_uw\',+this.value)"></div>
+        <div class="field"><label>Soll-LF (µS/cm)</label><input id="i_${idx}_soll_lf" type="number" inputmode="numeric" enterkeyhint="next" value="${s.soll_lf}" oninput="upd(${idx},\'soll_lf\',+this.value)"></div>
         <div class="field"><label>°dH Umlaufwasser</label><input id="i_${idx}_dh_uw" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.dh_uw}" oninput="upd(${idx},\'dh_uw\',+this.value)"></div>
         <div class="field"><label>Cl mg/l Umlaufwasser</label><input id="i_${idx}_cl_uw" type="number" inputmode="numeric" enterkeyhint="next" value="${s.cl_uw}" oninput="upd(${idx},\'cl_uw\',+this.value)"></div>
       </div>
     </div>
   </div>
 
-  <div class="section-label">🧮 Berechnungsergebnisse</div>
+  <div class="section-label">⚠️ Warnungen & Status</div>
+  <div class="card grid-full">
+    <div class="card-title">
+      <span class="icon">⚠️</span> Statusübersicht
+      <span style="margin-left:auto;display:flex;gap:8px;font-size:11px;">
+        <span id="sc_ok_${idx}" style="color:var(--ok)">✓ ${sevCount.ok} i.O.</span>
+        <span id="sc_warn_${idx}" style="color:var(--warn)">⚠ ${sevCount.warn} Warnung</span>
+        <span id="sc_err_${idx}" style="color:var(--err)">✗ ${sevCount.err} Problem</span>
+      </span>
+    </div>
+    <div class="card-body">
+      <div class="warnings-grid" id="w_${idx}">
+        ${r.warnings.map(w => `
+          <div class="warn-badge status-${w.sev}">
+            <div class="dot"></div>
+            ${w.text}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  </div>
+    <div class="section-label">🧮 Berechnungsergebnisse</div>
   <div class="grid-3">
     <div class="card">
       <div class="card-title"><span class="icon">📊</span> Eindickung</div>
@@ -693,11 +729,11 @@ function buildPanel(idx) {
         </div>
         <div class="result-row">
           <span class="result-label">Eindickung nach °dH</span>
-          <span class="result-value" id="r_${idx}_ez_dh_1">${fmt(r.ez_dh,2)}<span class="result-unit">fach</span></span>
+          <span class="result-value" id="r_${idx}_ez_dh_1" style="color:${r.ez_dh>r.ez_soll?'var(--err)':'inherit'}">${fmt(r.ez_dh,2)}<span class="result-unit">fach</span></span>
         </div>
         <div class="result-row">
           <span class="result-label">Eindickung nach Cl</span>
-          <span class="result-value" id="r_${idx}_ez_cl_2">${fmt(r.ez_cl,2)}<span class="result-unit">fach</span></span>
+          <span class="result-value" id="r_${idx}_ez_cl_2" style="color:${r.ez_cl>r.ez_soll?'var(--err)':'inherit'}">${fmt(r.ez_cl,2)}<span class="result-unit">fach</span></span>
         </div>
         <div class="result-row">
           <span class="result-label">Eindickung SOLL</span>
@@ -721,39 +757,24 @@ function buildPanel(idx) {
     </div>
 
     <div class="card">
-      <div class="card-title"><span class="icon">💧</span> Wasserbilanz</div>
+      <div class="card-title"><span class="icon">⚙️</span> Dosierpumpe</div>
       <div class="card-body">
-        <div class="result-row">
-          <span class="result-label">Zusatzwasser</span>
-          <span class="result-value" id="r_${idx}_zusatzwasser_5">${fmt(r.zusatzwasser,1)}<span class="result-unit">m³</span></span>
-        </div>
-        <div class="result-row">
-          <span class="result-label">Abwasser</span>
-          <span class="result-value" id="r_${idx}_abwasser_6">${fmt(r.abwasser,1)}<span class="result-unit">m³</span></span>
-        </div>
-        <div class="result-row">
-          <span class="result-label">Verdunstung</span>
-          <span class="result-value" id="r_${idx}_verdunstung_7">${fmt(r.verdunstung,1)}<span class="result-unit">m³</span></span>
-        </div>
-        <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
-        <div class="result-row">
-          <span class="result-label">KH ZW (scheinbar)</span>
-          <span class="result-value" id="r_${idx}_kh_zw_scheinbar_8">${fmt(r.kh_zw_scheinbar,1)}<span class="result-unit">°KH</span></span>
-        </div>
-        <div class="result-row">
-          <span class="result-label">KH UW real (max. 20)</span>
-          <span class="result-value" id="r_${idx}_kh_uw_real_9" style="color:${r.kh_uw_real>20?'var(--err)':'var(--text)'}">
-            ${fmt(r.kh_uw_real,1)}<span class="result-unit">°KH</span>
-          </span>
-        </div>
-        <div class="result-row">
-          <span class="result-label">KH bei SOLL-LF</span>
-          <span class="result-value" id="r_${idx}_kh_bei_soll_lf_10" style="color:${r.kh_bei_soll_lf>18.1?'var(--err)':'var(--text)'}">
-            ${fmt(r.kh_bei_soll_lf,1)}<span class="result-unit">°KH</span>
-          </span>
-        </div>
+        <div class="field"><label>Übersetzung Positiv</label><input id="i_${idx}_ueb_pos" type="number" inputmode="numeric" enterkeyhint="next" value="${s.ueb_pos}" oninput="upd(${idx},\'ueb_pos\',+this.value)"></div>
+        <div class="field"><label>Übersetzung Negativ</label><input id="i_${idx}_ueb_neg" type="number" inputmode="numeric" enterkeyhint="next" value="${s.ueb_neg}" oninput="upd(${idx},\'ueb_neg\',+this.value)"></div>
+        <div class="field"><label>Kontakt</label><input id="i_${idx}_kontakt" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.kontakt}" oninput="upd(${idx},\'kontakt\',+this.value)"></div>
+        <div class="field"><label>Dos. ml / 100 Hub</label><input id="i_${idx}_dos_ml_hub" type="number" inputmode="numeric" enterkeyhint="next" value="${s.dos_ml_hub}" oninput="upd(${idx},\'dos_ml_hub\',+this.value)"></div>
       </div>
     </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">🔢</span> Zählerstand & Verbrauch</div>
+      <div class="card-body">
+        <div class="field"><label>Zählerstand alt</label><input id="i_${idx}_zaehler_alt" type="number" inputmode="numeric" enterkeyhint="next" value="${s.zaehler_alt}" oninput="upd(${idx},\'zaehler_alt\',+this.value)"></div>
+        <div class="field"><label>Zählerstand neu</label><input id="i_${idx}_zaehler_neu" type="number" inputmode="numeric" enterkeyhint="next" value="${s.zaehler_neu}" oninput="upd(${idx},\'zaehler_neu\',+this.value)" placeholder="0 = aus Wasserverbrauch"></div>
+        <div class="field"><label>Produktverbrauch Eintragung (L)</label><input id="i_${idx}_prod_eintrag" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.prod_eintrag}" oninput="upd(${idx},\'prod_eintrag\',+this.value)"></div>
+      </div>
+    </div>
+  </div>
+
 
     <div class="card">
       <div class="card-title"><span class="icon">🧪</span> Produktverbrauch</div>
@@ -851,27 +872,42 @@ function buildPanel(idx) {
     </div>
   </div>
 
-  <div class="section-label">⚠️ Warnungen & Status</div>
-  <div class="card grid-full">
-    <div class="card-title">
-      <span class="icon">⚠️</span> Statusübersicht
-      <span style="margin-left:auto;display:flex;gap:8px;font-size:11px;">
-        <span style="color:var(--ok)">✓ ${sevCount.ok} i.O.</span>
-        <span style="color:var(--warn)">⚠ ${sevCount.warn} Warnung</span>
-        <span style="color:var(--err)">✗ ${sevCount.err} Problem</span>
-      </span>
-    </div>
-    <div class="card-body">
-      <div class="warnings-grid">
-        ${r.warnings.map(w => `
-          <div class="warn-badge status-${w.sev}">
-            <div class="dot"></div>
-            ${w.text}
-          </div>
-        `).join('')}
+
+    <div class="card">
+      <div class="card-title"><span class="icon">💧</span> Wasserbilanz</div>
+      <div class="card-body">
+        <div class="result-row">
+          <span class="result-label">Zusatzwasser</span>
+          <span class="result-value" id="r_${idx}_zusatzwasser_5">${fmt(r.zusatzwasser,1)}<span class="result-unit">m³</span></span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Abwasser</span>
+          <span class="result-value" id="r_${idx}_abwasser_6">${fmt(r.abwasser,1)}<span class="result-unit">m³</span></span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Verdunstung</span>
+          <span class="result-value" id="r_${idx}_verdunstung_7">${fmt(r.verdunstung,1)}<span class="result-unit">m³</span></span>
+        </div>
+        <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
+        <div class="result-row">
+          <span class="result-label">KH ZW (scheinbar)</span>
+          <span class="result-value" id="r_${idx}_kh_zw_scheinbar_8">${fmt(r.kh_zw_scheinbar,1)}<span class="result-unit">°KH</span></span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">KH UW real (max. 20)</span>
+          <span class="result-value" id="r_${idx}_kh_uw_real_9" style="color:${r.kh_uw_real>20?'var(--err)':'var(--text)'}">
+            ${fmt(r.kh_uw_real,1)}<span class="result-unit">°KH</span>
+          </span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">KH bei SOLL-LF</span>
+          <span class="result-value" id="r_${idx}_kh_bei_soll_lf_10" style="color:${r.kh_bei_soll_lf>18.1?'var(--err)':'var(--text)'}">
+            ${fmt(r.kh_bei_soll_lf,1)}<span class="result-unit">°KH</span>
+          </span>
+        </div>
       </div>
     </div>
-  </div>
+
   `;
 }
 
@@ -885,7 +921,9 @@ function updateResults(idx) {
 
   set(`r_${idx}_ez_ist_0`,    `${fmt(r.ez_lf,2)}<span class="result-unit">fach</span>`);
   set(`r_${idx}_ez_dh_1`,     `${fmt(r.ez_dh,2)}<span class="result-unit">fach</span>`);
+  setStyle(`r_${idx}_ez_dh_1`, r.ez_dh > r.ez_soll ? 'var(--err)' : '');
   set(`r_${idx}_ez_cl_2`,     `${fmt(r.ez_cl,2)}<span class="result-unit">fach</span>`);
+  setStyle(`r_${idx}_ez_cl_2`, r.ez_cl > r.ez_soll ? 'var(--err)' : '');
   set(`r_${idx}_ez_soll_3`,   `${fmt(r.ez_soll,2)}<span class="result-unit">fach</span>`);
   
   const pct = r.pct_soll_lf*100;
@@ -917,10 +955,22 @@ function updateResults(idx) {
   if(marker) marker.style.left = Math.min(95, Math.max(5,(r.ez_ist/6)*100)) + '%';
 
   // Warnungen
+  // Header Zähler aktualisieren
+  const sc = {ok:0, warn:0, err:0};
+  r.warnings.forEach(w => sc[w.sev]++);
+  const okEl   = document.getElementById(`sc_ok_${idx}`);
+  const warnEl2= document.getElementById(`sc_warn_${idx}`);
+  const errEl  = document.getElementById(`sc_err_${idx}`);
+  if(okEl)    okEl.textContent   = `✓ ${sc.ok} i.O.`;
+  if(warnEl2) warnEl2.textContent= `⚠ ${sc.warn} Warnung`;
+  if(errEl)   errEl.textContent  = `✗ ${sc.err} Problem`;
+
   const warnEl = document.getElementById(`w_${idx}`);
-  if(warnEl) warnEl.innerHTML = r.warnings.length === 0
-    ? '<span class="badge badge-ok">✅ Alle Werte OK</span>'
-    : r.warnings.map(w=>`<span class="badge badge-${w.sev}">${w.msg}</span>`).join('');
+  if(warnEl) warnEl.innerHTML = r.warnings.map(w=>`
+    <div class="warn-badge status-${w.sev}">
+      <div class="dot"></div>
+      ${w.text}
+    </div>`).join('');
 
   // Tab-Status aktualisieren
   const tab = document.querySelector(`.tab:nth-child(${idx+1}) .status-dot`);
@@ -948,6 +998,8 @@ function render() {
   const mainEl = document.getElementById('main');
   if (activeRKW < 5) {
     mainEl.innerHTML = `<div class="rkw-panel active">${buildPanel(activeRKW)}</div>`;
+    // Ergebnisse sofort nach DOM-Aufbau aktualisieren
+    updateResults(activeRKW);
   } else {
     renderHistoryPanel(mainEl);
   }
@@ -987,11 +1039,21 @@ function renderResults(idx) {
   set(`res_${idx}_tage_btb`,     isNaN(r.tage_btb)      ? '-' : r.tage_btb);
 
   // Warnungen aktualisieren
+  // Header Zähler aktualisieren
+  const sc = {ok:0, warn:0, err:0};
+  r.warnings.forEach(w => sc[w.sev]++);
+  const okEl   = document.getElementById(`sc_ok_${idx}`);
+  const warnEl2= document.getElementById(`sc_warn_${idx}`);
+  const errEl  = document.getElementById(`sc_err_${idx}`);
+  if(okEl)    okEl.textContent   = `✓ ${sc.ok} i.O.`;
+  if(warnEl2) warnEl2.textContent= `⚠ ${sc.warn} Warnung`;
+  if(errEl)   errEl.textContent  = `✗ ${sc.err} Problem`;
+
   const warnEl = document.getElementById(`w_${idx}`);
   if (warnEl) {
     warnEl.innerHTML = r.warnings.length === 0
       ? '<span class="badge badge-ok">✅ Alle Werte OK</span>'
-      : r.warnings.map(w => `<span class="badge badge-${w.sev}">${w.msg}</span>`).join('');
+      : r.warnings.map(w => `<span class="badge badge-${w.sev}">${w.text}</span>`).join('');
   }
 }
 
@@ -1014,17 +1076,17 @@ function renderTabs() {
 function upd(idx, key, val) {
   state[idx][key] = val;
   // datum_btb immer mit datum_alt synchronisieren
-  // AUSSER wenn es manuell auf einen anderen Wert gesetzt wurde
   if (key === 'datum_alt') {
     const btb = state[idx].datum_btb;
     const prevAlt = state[idx]._prev_datum_alt || '';
     if (!btb || btb === prevAlt) {
       state[idx].datum_btb = val;
+      // BTB Input-Feld direkt aktualisieren ohne render()
+      const btbEl = document.getElementById(`i_${idx}_datum_btb`);
+      if (btbEl) btbEl.value = val;
     }
     state[idx]._prev_datum_alt = val;
   }
-  // Debounce: render erst nach 400ms Pause - Cursor bleibt ruhig beim Tippen
-  // Nur Ergebnisse aktualisieren - Inputs werden NICHT angefasst
   updateResults(idx);
 }
 
