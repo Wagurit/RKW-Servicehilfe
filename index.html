@@ -228,7 +228,7 @@
     height: 100%;
     background: rgba(14,165,233,.25);
     border-radius: 4px;
-    left: 20%; width: 20%;
+    left: 33.3%; width: 33.3%; /* Sollbereich 2-4 auf Skala 0-6 */
   }
   .eindickung-marker {
     position: absolute;
@@ -357,7 +357,7 @@
     height: 100%;
     background: rgba(14,165,233,.3);
     border-radius: 4px;
-    left: 20%; width: 20%;
+    left: 33.3%; width: 33.3%; /* Sollbereich 2-4 auf Skala 0-6 */
   }
   .eindickung-marker {
     position: absolute;
@@ -705,7 +705,7 @@ function buildPanel(idx) {
         </div>
         <div class="result-row">
           <span class="result-label">% der SOLL-LF</span>
-          <span class="result-value">${fmt(r.pct_soll_lf*100,1)}<span class="result-unit">%</span></span>
+          <span class="result-value" style="color:${r.pct_soll_lf*100>105?'var(--err)':'inherit'}">${fmt(r.pct_soll_lf*100,1)}<span class="result-unit">%</span></span>
         </div>
         <div style="margin-top:8px;">
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Sollbereich 2–4</div>
@@ -958,9 +958,16 @@ function renderTabs() {
 
 function upd(idx, key, val) {
   state[idx][key] = val;
-  // Wenn datum_alt gesetzt wird und datum_btb noch leer ist -> übernehmen
-  if (key === 'datum_alt' && !state[idx].datum_btb) {
-    state[idx].datum_btb = val;
+  // datum_btb immer mit datum_alt synchronisieren
+  // AUSSER wenn es manuell auf einen anderen Wert gesetzt wurde
+  if (key === 'datum_alt') {
+    const btb = state[idx].datum_btb;
+    const prevAlt = state[idx]._prev_datum_alt || '';
+    // Synchronisieren wenn: leer, oder noch gleich dem alten datum_alt
+    if (!btb || btb === prevAlt) {
+      state[idx].datum_btb = val;
+    }
+    state[idx]._prev_datum_alt = val;
   }
   clearTimeout(upd._timer);
   upd._timer = setTimeout(render, 0);
