@@ -94,6 +94,29 @@
     white-space: nowrap;
   }
   .tab:hover { color: #ffffff; }
+  .tab-action {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    transition: background 0.15s;
+  }
+  .tab-action span {
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .tab-action:hover {
+    background: rgba(255,255,255,0.22);
+  }
   .tab.active { color: #ffffff; border-bottom-color: #ffffff; }
   .tab .status-dot {
     display: inline-block;
@@ -384,10 +407,7 @@
 </svg>
   <div class="logo">RKW <span>Dosier- & Wartungshilfe</span></div>
   <div class="header-right">
-    <button class="btn" onclick="showHistory()">📋 Verlauf</button>
-    <button class="btn" onclick="exportExcel()">📊 Excel Export</button>
-    <button class="btn" onclick="window.print()">🖨 Drucken</button>
-    <button class="btn btn-primary" onclick="saveEntry()">💾 Eintrag speichern</button>
+
   </div>
 </div>
 
@@ -1029,7 +1049,10 @@ function render() {
       <div style="font-size:12px;color:rgba(255,255,255,0.9);max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${rkwNames[i] || ''}</div>
       <span class="status-dot ${maxSev}"></span>
     </div>`;
-  }).join('') + `<div class="tab ${activeRKW===5?'active':''}" onclick="switchRKW(5)">📋 Verlauf</div>`;
+  }).join('') + `<div class="tab-action" onclick="saveEntry()">💾<span>Speichern</span></div>` +
+  `<div class="tab ${activeRKW===5?'active':''}" onclick="switchRKW(5)">📋<span>Verlauf</span></div>` +
+  `<div class="tab-action" onclick="exportExcel()">📊<span>Excel</span></div>` +
+  `<div class="tab-action" onclick="window.print()">🖨<span>Drucken</span></div>`;
 
   // Panel
   const mainEl = document.getElementById('main');
@@ -1108,7 +1131,10 @@ function renderTabs() {
       RKW ${i+1}
       <span class="status-dot ${maxSev}"></span>
     </div>`;
-  }).join('') + `<div class="tab ${activeRKW===5?'active':''}" onclick="switchRKW(5)">📋 Verlauf</div>`;
+  }).join('') + `<div class="tab-action" onclick="saveEntry()">💾<span>Speichern</span></div>` +
+  `<div class="tab ${activeRKW===5?'active':''}" onclick="switchRKW(5)">📋<span>Verlauf</span></div>` +
+  `<div class="tab-action" onclick="exportExcel()">📊<span>Excel</span></div>` +
+  `<div class="tab-action" onclick="window.print()">🖨<span>Drucken</span></div>`;
 }
 
 
