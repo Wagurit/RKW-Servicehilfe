@@ -1050,7 +1050,7 @@ function render() {
       <span class="status-dot ${maxSev}"></span>
     </div>`;
   }).join('') + `<div class="tab-action" onclick="saveEntry()">💾<span>Speichern</span></div>` +
-  `<div class="tab ${activeRKW===5?'active':''}" onclick="switchRKW(5)">📋<span>Verlauf</span></div>` +
+  `<div class="tab-action ${activeRKW===5?'active':''}" onclick="switchRKW(5)">📋<span>Verlauf</span></div>` +
   `<div class="tab-action" onclick="exportExcel()">📊<span>Excel</span></div>` +
   `<div class="tab-action" onclick="window.print()">🖨<span>Drucken</span></div>`;
 
@@ -1132,7 +1132,7 @@ function renderTabs() {
       <span class="status-dot ${maxSev}"></span>
     </div>`;
   }).join('') + `<div class="tab-action" onclick="saveEntry()">💾<span>Speichern</span></div>` +
-  `<div class="tab ${activeRKW===5?'active':''}" onclick="switchRKW(5)">📋<span>Verlauf</span></div>` +
+  `<div class="tab-action ${activeRKW===5?'active':''}" onclick="switchRKW(5)">📋<span>Verlauf</span></div>` +
   `<div class="tab-action" onclick="exportExcel()">📊<span>Excel</span></div>` +
   `<div class="tab-action" onclick="window.print()">🖨<span>Drucken</span></div>`;
 }
