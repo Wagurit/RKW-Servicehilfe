@@ -795,6 +795,23 @@ function buildPanel(idx) {
             <span>0</span><span>2</span><span>4</span><span>6+</span>
           </div>
         </div>
+        <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
+        <div class="result-row">
+          <span class="result-label">KH ZW (scheinbar)</span>
+          <span class="result-value" id="r_${idx}_kh_zw_scheinbar_8">${fmt(r.kh_zw_scheinbar,1)}<span class="result-unit">°KH</span></span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">KH UW real (max. 20)</span>
+          <span class="result-value" id="r_${idx}_kh_uw_real_9" style="color:${r.kh_uw_real>20?'var(--err)':'var(--text)'}">
+            ${fmt(r.kh_uw_real,1)}<span class="result-unit">°KH</span>
+          </span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">KH bei SOLL-LF</span>
+          <span class="result-value" id="r_${idx}_kh_bei_soll_lf_10" style="color:${r.kh_bei_soll_lf>18.1?'var(--err)':'var(--text)'}">
+            ${fmt(r.kh_bei_soll_lf,1)}<span class="result-unit">°KH</span>
+          </span>
+        </div>
       </div>
     </div>
 
@@ -931,23 +948,7 @@ function buildPanel(idx) {
           <span class="result-label">Verdunstung</span>
           <span class="result-value" id="r_${idx}_verdunstung_7">${fmt(r.verdunstung,1)}<span class="result-unit">m³</span></span>
         </div>
-        <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
-        <div class="result-row">
-          <span class="result-label">KH ZW (scheinbar)</span>
-          <span class="result-value" id="r_${idx}_kh_zw_scheinbar_8">${fmt(r.kh_zw_scheinbar,1)}<span class="result-unit">°KH</span></span>
-        </div>
-        <div class="result-row">
-          <span class="result-label">KH UW real (max. 20)</span>
-          <span class="result-value" id="r_${idx}_kh_uw_real_9" style="color:${r.kh_uw_real>20?'var(--err)':'var(--text)'}">
-            ${fmt(r.kh_uw_real,1)}<span class="result-unit">°KH</span>
-          </span>
-        </div>
-        <div class="result-row">
-          <span class="result-label">KH bei SOLL-LF</span>
-          <span class="result-value" id="r_${idx}_kh_bei_soll_lf_10" style="color:${r.kh_bei_soll_lf>18.1?'var(--err)':'var(--text)'}">
-            ${fmt(r.kh_bei_soll_lf,1)}<span class="result-unit">°KH</span>
-          </span>
-        </div>
+
       </div>
     </div>
 
