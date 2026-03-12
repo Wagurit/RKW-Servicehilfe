@@ -1139,9 +1139,9 @@ async function saveToSupabase(entry) {
       },
       body: JSON.stringify({
         ts: entry.ts,
-        rkw: entry.rkw,
+        rkw: entry.rkw || 0,
         kunde: entry.kunde || '',
-        datum: entry.datum,
+        datum: entry.datum || '',
         data: JSON.stringify(entry)
       })
     });
