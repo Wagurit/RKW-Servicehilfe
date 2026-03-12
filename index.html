@@ -1129,7 +1129,7 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 
 async function saveToSupabase(entry) {
   try {
-    const res = await fetch(SUPA_URL + '/rest/v1/verlauf', {
+    const res = await fetch(SUPA_URL + '/rest/v1/Verlauf', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1151,7 +1151,7 @@ async function saveToSupabase(entry) {
 
 async function loadFromSupabase() {
   try {
-    const res = await fetch(SUPA_URL + '/rest/v1/verlauf?order=ts.desc&limit=100', {
+    const res = await fetch(SUPA_URL + '/rest/v1/Verlauf?order=ts.desc&limit=100', {
       headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
     });
     if (!res.ok) return null;
@@ -1168,28 +1168,41 @@ function saveHistory(h) {
 }
 
 function saveEntry() {
-  const s = state[activeRKW < 5 ? activeRKW : 0];
-  const r = calc(s);
+  const ts = Date.now();
+  // Alle 5 RKWs zusammen speichern
+  const rkwData = state.map((s, i) => {
+    const r = calc(s);
+    return {
+      rkw: i + 1,
+      state: {...s},
+      summary: {
+        ez_lf: r.ez_lf, ez_dh: r.ez_dh, ez_cl: r.ez_cl,
+        prod_ul: r.prod_ml_m3_ul_soll,
+        cl_uw: s.cl_uw,
+        warns: r.warnings.filter(w=>w.sev!=='ok').length,
+        errs: r.warnings.filter(w=>w.sev==='err').length,
+      }
+    };
+  });
+  const s0 = state[0];
   const entry = {
-    ts: Date.now(),
-    rkw: activeRKW < 5 ? activeRKW + 1 : 1,
+    ts,
     kunde: kundenName,
-    datum: s.datum_neu,
-    state: {...s},
-    summary: {
-      ez_lf: r.ez_lf, ez_dh: r.ez_dh, ez_cl: r.ez_cl,
-      prod_ul: r.prod_ml_m3_ul_soll,
-      cl_uw: s.cl_uw,
-      warns: r.warnings.filter(w=>w.sev!=='ok').length,
-      errs: r.warnings.filter(w=>w.sev==='err').length,
-    }
+    datum: s0.datum_neu,
+    rkwData,
+    // Für Rückwärtskompatibilität beim Laden
+    rkw: activeRKW < 5 ? activeRKW + 1 : 1,
+    state: {...state[activeRKW < 5 ? activeRKW : 0]},
+    summary: rkwData[activeRKW < 5 ? activeRKW : 0].summary,
   };
   const h = getHistory();
   h.unshift(entry);
   if (h.length > 50) h.pop();
   saveHistory(h);
   saveToSupabase(entry);
-  alert(`✅ RKW ${entry.rkw} – Eintrag für ${fmtDate(s.datum_neu)} gespeichert!`);
+  const gesamt_warns = rkwData.reduce((a,r)=>a+r.summary.warns,0);
+  const gesamt_errs  = rkwData.reduce((a,r)=>a+r.summary.errs,0);
+  alert(`✅ Alle RKWs für ${kundenName ? kundenName + ' – ' : ''}${fmtDate(s0.datum_neu)} gespeichert!\n⚠ ${gesamt_warns} Warnung(en) / ✗ ${gesamt_errs} Problem(e)`);
 }
 
 function renderHistoryPanel(mainEl) {
@@ -1202,7 +1215,7 @@ function renderHistoryPanel(mainEl) {
       h.map((e,i) => `
         <div class="history-entry" onclick="loadEntry(${i})">
           <div class="history-entry-header">
-            <span class="history-date">${e.kunde ? e.kunde + ' – ' : ''}RKW ${e.rkw} – ${fmtDate(e.datum)}</span>
+            <span class="history-date">${e.kunde ? e.kunde + ' – ' : ''}${fmtDate(e.datum)}</span>
             <span style="font-size:11px;color:var(--muted);">${new Date(e.ts).toLocaleString('de-DE')}</span>
           </div>
           <div class="history-stats">
@@ -1231,10 +1244,23 @@ function renderHistoryPanel(mainEl) {
 function loadEntry(i) {
   const h = getHistory();
   const e = h[i];
-  const rkwIdx = (e.rkw || 1) - 1;
-  Object.assign(state[rkwIdx], e.state);
-  activeRKW = rkwIdx;
-  if (e.kunde) kundenName = e.kunde;
+  if (e.rkwData) {
+    // Neues Format: alle RKWs laden
+    e.rkwData.forEach((rd, idx) => {
+      Object.assign(state[idx], rd.state);
+    });
+    activeRKW = 0;
+  } else {
+    // Altes Format: nur ein RKW
+    const rkwIdx = (e.rkw || 1) - 1;
+    Object.assign(state[rkwIdx], e.state);
+    activeRKW = rkwIdx;
+  }
+  if (e.kunde) {
+    kundenName = e.kunde;
+    const knEl = document.getElementById('kundenNameInput');
+    if (knEl) knEl.value = kundenName;
+  }
   render();
 }
 
