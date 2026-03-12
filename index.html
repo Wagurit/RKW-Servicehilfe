@@ -1129,7 +1129,7 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 
 async function saveToSupabase(entry) {
   try {
-    const res = await fetch(SUPA_URL + '/rest/v1/Verlauf', {
+    const res = await fetch(SUPA_URL + '/rest/v1/verlauf', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1159,7 +1159,7 @@ async function saveToSupabase(entry) {
 
 async function loadFromSupabase() {
   try {
-    const res = await fetch(SUPA_URL + '/rest/v1/Verlauf?order=ts.desc&limit=100', {
+    const res = await fetch(SUPA_URL + '/rest/v1/verlauf?order=ts.desc&limit=100', {
       headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
     });
     if (!res.ok) return null;
