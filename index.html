@@ -662,20 +662,24 @@ function buildPanel(idx) {
   r.warnings.forEach(w => sevCount[w.sev]++);
 
   return `
-  <div style="background:rgba(0,0,0,0.15);border-radius:10px;padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;">
-    <span style="color:#fff;font-weight:700;font-size:13px;white-space:nowrap;">🔧 RKW ${idx+1}</span>
-    <input type="text" enterkeyhint="next" autocomplete="off"
-      placeholder="Bezeichnung (optional)"
-      value="${rkwNames[idx] || ''}"
-      oninput="rkwNames[${idx}]=this.value; const t=document.querySelectorAll('.tab'); if(t[${idx}]) t[${idx}].querySelector('div:nth-child(2)').textContent=this.value;"
-      style="width:130px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:5px 8px;color:#fff;font-size:13px;"
-    />
-    <span style="color:#fff;font-weight:700;font-size:13px;white-space:nowrap;">👤 KUNDE</span>
+  <div style="background:rgba(0,0,0,0.15);border-radius:10px;padding:10px 16px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="color:#fff;font-weight:700;font-size:13px;white-space:nowrap;">🔧 RKW ${idx+1}</span>
+      <input type="text" enterkeyhint="next" autocomplete="off"
+        placeholder="Bezeichnung (optional)"
+        value="${rkwNames[idx] || ''}"
+        oninput="rkwNames[${idx}]=this.value; const t=document.querySelectorAll('.tab'); if(t[${idx}]) t[${idx}].querySelector('div:nth-child(2)').textContent=this.value;"
+        style="flex:1;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:5px 8px;color:#fff;font-size:13px;"
+      />
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="color:#fff;font-weight:700;font-size:13px;white-space:nowrap;">👤 KUNDE</span>
     <input id="kunde_input" type="text" enterkeyhint="next" autocomplete="off"
       placeholder="Kundenname eingeben..."
       value="${kundenName}"
       oninput="kundenName=this.value; document.querySelectorAll('.kunde_display').forEach(el=>el.textContent=this.value);"
       style="flex:1;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:6px 10px;color:#fff;font-size:14px;font-weight:600;">
+    </div>
   </div>
   <div class="section-label">📅 Besuchsdaten</div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,400px));gap:16px;">
