@@ -1145,8 +1145,16 @@ async function saveToSupabase(entry) {
         data: JSON.stringify(entry)
       })
     });
+    if (!res.ok) {
+      const err = await res.text();
+      console.error('Supabase Fehler:', res.status, err);
+      alert('Supabase Fehler ' + res.status + ': ' + err);
+    }
     return res.ok;
-  } catch(e) { return false; }
+  } catch(e) {
+    console.error('Supabase Exception:', e);
+    return false;
+  }
 }
 
 async function loadFromSupabase() {
