@@ -104,6 +104,7 @@
     vertical-align: middle;
   }
   .tab .status-dot.ok { background: var(--ok); }
+  .tab .status-dot.none { background: transparent; }
   .tab .status-dot.warn { background: var(--warn); }
   .tab .status-dot.err { background: var(--err); }
 
@@ -409,6 +410,7 @@
 // ── STATE ─────────────────────────────────────────────────────────────────
 const RKW_COUNT = 5;
 let activeRKW = 0;
+let kundenName = '';
 
 // Default-Werte aus Excel
 const defaults = {
@@ -577,12 +579,12 @@ function calc(s) {
   if (r.prod_ml_m3_ns > 0) {
     // Nach LF - nur wenn LF-Werte vorhanden
     if (s.lf_zw && s.lf_uw) {
-      if (r.prod_bei_ez_lf < 160) r.warnings.push({id:'dos_lf', text:'Dos. zu niedrig (nach LF) < 160 ml/m³ – anheben!', sev:'err'});
+      if (r.prod_bei_ez_lf < 160) r.warnings.push({id:'dos_lf', text:'Dos. zu niedrig (nach LF/Dos.Pumpe) < 160 ml/m³ – anheben!', sev:'err'});
       else r.warnings.push({id:'dos_lf_ok', text:'Dosierung nach LF i.O.', sev:'ok'});
     } else {
-      // Keine LF-Werte: direkt prod_ml_m3_ns prüfen
-      if (r.prod_ml_m3_ns < 160) r.warnings.push({id:'dos_lf', text:'Dos. zu niedrig (nach Einstellung) < 160 ml/m³ – anheben!', sev:'err'});
-      else r.warnings.push({id:'dos_lf_ok', text:'Dosierung nach Einstellung i.O.', sev:'ok'});
+      // Keine LF-Werte: prod_ul_eintrag_soll prüfen (WM/Produkt Eintragung)
+      if (r.prod_ul_eintrag_soll > 0.1 && r.prod_ul_eintrag_soll < 160) r.warnings.push({id:'dos_lf', text:'Dos. zu niedrig (nach Eintragung WM/Produkt) < 160 ml/m³ – anheben!', sev:'err'});
+      else if (r.prod_ul_eintrag_soll >= 160) r.warnings.push({id:'dos_lf_ok', text:'Dosierung nach Eintragung i.O.', sev:'ok'});
     }
 
     // Nach dH - nur wenn dH-Werte vorhanden
@@ -618,7 +620,7 @@ function calc(s) {
 
   // Karbonathärte
   if (s.ks_zw) {
-    if (r.kh_bei_soll_lf > 18.1) r.warnings.push({id:'kh_ein', text:'Ggf. Eindickung reduzieren (KH > 18)', sev:'warn'});
+    if (r.kh_bei_soll_lf > 18.1) r.warnings.push({id:'kh_ein', text:'Ggf. Eindickung reduzieren (KH > 18)', sev:'err'});
     else r.warnings.push({id:'kh_ok', text:'Karbonathärte i.O.', sev:'ok'});
   }
 
@@ -659,8 +661,16 @@ function buildPanel(idx) {
   r.warnings.forEach(w => sevCount[w.sev]++);
 
   return `
+  <div style="background:rgba(0,0,0,0.15);border-radius:10px;padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;">
+    <span style="color:#fff;font-weight:700;font-size:13px;white-space:nowrap;">👤 KUNDE</span>
+    <input id="kunde_input" type="text" enterkeyhint="next" autocomplete="off"
+      placeholder="Kundenname eingeben..."
+      value="${kundenName}"
+      oninput="kundenName=this.value; document.querySelectorAll('.kunde_display').forEach(el=>el.textContent=this.value);"
+      style="flex:1;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:6px 10px;color:#fff;font-size:14px;font-weight:600;">
+  </div>
   <div class="section-label">📅 Besuchsdaten</div>
-  <div class="grid-3">
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,400px));gap:16px;">
     <div class="card">
       <div class="card-title"><span class="icon">📅</span> Datum</div>
       <div class="card-body">
@@ -678,10 +688,10 @@ function buildPanel(idx) {
     <div class="card">
       <div class="card-title"><span class="icon">🚰</span> Speisewasser / Zusatzwasser</div>
       <div class="card-body">
-        <div class="field"><label>KS 4,3</label><input id="i_${idx}_ks_zw" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.ks_zw}" oninput="upd(${idx},\'ks_zw\',+this.value)"></div>
-        <div class="field"><label>LF Zusatzwasser (µS/cm)</label><input id="i_${idx}_lf_zw" type="number" inputmode="numeric" enterkeyhint="next" value="${s.lf_zw}" oninput="upd(${idx},\'lf_zw\',+this.value)"></div>
-        <div class="field"><label>°dH Zusatzwasser</label><input id="i_${idx}_dh_zw" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.dh_zw}" oninput="upd(${idx},\'dh_zw\',+this.value)"></div>
-        <div class="field"><label>Cl mg/l Zusatzwasser</label><input id="i_${idx}_cl_zw" type="number" inputmode="numeric" enterkeyhint="next" value="${s.cl_zw}" oninput="upd(${idx},\'cl_zw\',+this.value)"></div>
+        <div class="field"><label>KS 4,3</label><input id="i_${idx}_ks_zw" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.ks_zw}" onchange="upd(${idx},\'ks_zw\',+this.value)"></div>
+        <div class="field"><label>LF Zusatzwasser (µS/cm)</label><input id="i_${idx}_lf_zw" type="number" inputmode="numeric" enterkeyhint="next" value="${s.lf_zw}" onchange="upd(${idx},\'lf_zw\',+this.value)"></div>
+        <div class="field"><label>°dH Zusatzwasser</label><input id="i_${idx}_dh_zw" type="number" inputmode="numeric" enterkeyhint="next" step="0.1" value="${s.dh_zw}" onchange="upd(${idx},\'dh_zw\',+this.value)"></div>
+        <div class="field"><label>Cl mg/l Zusatzwasser</label><input id="i_${idx}_cl_zw" type="number" inputmode="numeric" enterkeyhint="next" value="${s.cl_zw}" onchange="upd(${idx},\'cl_zw\',+this.value)"></div>
       </div>
     </div>
     <div class="card">
@@ -775,17 +785,17 @@ function buildPanel(idx) {
     </div>
   </div>
 
-
+  <div style="display:grid;grid-template-columns:1fr;gap:16px;">
     <div class="card">
       <div class="card-title"><span class="icon">🧪</span> Produktverbrauch</div>
       <div class="card-body">
         <div style="margin-bottom:12px;">
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Rechnerisch (aus Pumpe)</div>
           <div class="big-result">
-            <span class="highlight-value">${fmt(r.prod_ml_m3_ul_soll,0)}</span>
+            <span class="highlight-value" id="r_${idx}_prod_ul_soll">${fmt(r.prod_ml_m3_ul_soll,0)}</span>
             <span style="color:var(--muted);font-size:12px;">ml/m³ Umlauf bei SOLL LF</span>
           </div>
-          <div style="font-size:11px;color:${r.prod_ml_m3_ul_soll>=160&&r.prod_ml_m3_ul_soll<=250?'var(--ok)':r.prod_ml_m3_ul_soll<160?'var(--err)':'var(--warn)'}">
+          <div id="r_${idx}_prod_ul_soll_bar" style="font-size:11px;color:${r.prod_ml_m3_ul_soll>=160&&r.prod_ml_m3_ul_soll<=250?'var(--ok)':r.prod_ml_m3_ul_soll<160?'var(--err)':'var(--warn)'}">
             Sollbereich: 160–250 ml/m³
           </div>
         </div>
@@ -815,6 +825,7 @@ function buildPanel(idx) {
         </div>
       </div>
     </div>
+  </div>
   </div>
 
   <div class="section-label">🦠 Bioziddosierung</div>
@@ -940,6 +951,14 @@ function updateResults(idx) {
   set(`r_${idx}_prod_ml_m_12`,    `${fmt(r.prod_ml_m3_ul,1)}<span class="result-unit">ml/m³</span>`);
   set(`r_${idx}_prod_verbrauch_l_13`, `${fmt(r.prod_verbrauch_l,1)}<span class="result-unit">L</span>`);
   set(`r_${idx}_prod_ns_eintrag_14`,  `${fmt(r.prod_ns_eintrag,1)}<span class="result-unit">ml/m³</span>`);
+  // prod_ml_m3_ul_soll (big-result Wert)
+  const ulSollEl = document.getElementById(`r_${idx}_prod_ul_soll`);
+  if(ulSollEl) ulSollEl.textContent = r.prod_ml_m3_ul_soll > 0 && !isNaN(r.prod_ml_m3_ul_soll)
+    ? Number(r.prod_ml_m3_ul_soll).toFixed(0).replace('.',',') : '–';
+  const ulSollBar = document.getElementById(`r_${idx}_prod_ul_soll_bar`);
+  if(ulSollBar) ulSollBar.style.color = r.prod_ml_m3_ul_soll>=160&&r.prod_ml_m3_ul_soll<=250
+    ? 'var(--ok)' : r.prod_ml_m3_ul_soll<160 ? 'var(--err)' : 'var(--warn)';
+
   set(`r_${idx}_prod_ul_eintrag_soll_15`, `${fmt(r.prod_ul_eintrag_soll,1)}<span class="result-unit">ml/m³</span>`);
   set(`r_${idx}_tage_seit_btb_16`, `${isNaN(r.tage_seit_btb)?'-':r.tage_seit_btb}<span class="result-unit">Tage</span>`);
   set(`r_${idx}_bio_dos_pro_dos_l_17`, `${fmt(r.bio_dos_pro_dos_l,3)}<span class="result-unit">L/Dos.</span>`);
@@ -975,7 +994,10 @@ function updateResults(idx) {
   // Tab-Status aktualisieren
   const tab = document.querySelector(`.tab:nth-child(${idx+1}) .status-dot`);
   if(tab) {
-    const maxSev = r.warnings.some(w=>w.sev==='err') ? 'err' : r.warnings.some(w=>w.sev==='warn') ? 'warn' : 'ok';
+    const hasValues = !!(s.lf_uw || s.lf_zw || s.ueb_pos);
+    const maxSev = r.warnings.some(w=>w.sev==='err') ? 'err'
+                 : r.warnings.some(w=>w.sev==='warn') ? 'warn'
+                 : hasValues ? 'ok' : 'none';
     tab.className = `status-dot ${maxSev}`;
   }
 }
@@ -986,8 +1008,10 @@ function render() {
   tabsEl.innerHTML = Array.from({length: RKW_COUNT}, (_,i) => {
     const s = state[i];
     const r = calc(s);
+    const hasValues = !!(state[i].lf_uw || state[i].lf_zw || state[i].ueb_pos);
     const maxSev = r.warnings.some(w=>w.sev==='err') ? 'err'
-                 : r.warnings.some(w=>w.sev==='warn') ? 'warn' : 'ok';
+                 : r.warnings.some(w=>w.sev==='warn') ? 'warn'
+                 : hasValues ? 'ok' : 'none';
     return `<div class="tab ${i===activeRKW?'active':''}" onclick="switchRKW(${i})">
       RKW ${i+1}
       <span class="status-dot ${maxSev}"></span>
@@ -1063,8 +1087,10 @@ function renderTabs() {
   tabsEl.innerHTML = Array.from({length: RKW_COUNT}, (_,i) => {
     const s = state[i];
     const r = calc(s);
+    const hasValues = !!(state[i].lf_uw || state[i].lf_zw || state[i].ueb_pos);
     const maxSev = r.warnings.some(w=>w.sev==='err') ? 'err'
-                 : r.warnings.some(w=>w.sev==='warn') ? 'warn' : 'ok';
+                 : r.warnings.some(w=>w.sev==='warn') ? 'warn'
+                 : hasValues ? 'ok' : 'none';
     return `<div class="tab ${i===activeRKW?'active':''}" onclick="switchRKW(${i})">
       RKW ${i+1}
       <span class="status-dot ${maxSev}"></span>
@@ -1075,6 +1101,13 @@ function renderTabs() {
 
 function upd(idx, key, val) {
   state[idx][key] = val;
+  // Speisewasser von RKW 1 automatisch auf RKW 2-5 kopieren
+  const speisewasserFelder = ['ks_zw', 'lf_zw', 'dh_zw', 'cl_zw', 'datum_alt'];
+  if (idx === 0 && speisewasserFelder.includes(key)) {
+    for (let i = 1; i < RKW_COUNT; i++) {
+      state[i][key] = val;
+    }
+  }
   // datum_btb immer mit datum_alt synchronisieren
   if (key === 'datum_alt') {
     const btb = state[idx].datum_btb;
@@ -1091,6 +1124,42 @@ function upd(idx, key, val) {
 }
 
 // ── VERLAUF ───────────────────────────────────────────────────────────────
+const SUPA_URL = 'https://loekjdetgppmxnwnwxkm.supabase.co';
+const SUPA_KEY = 'sb_publishable_tvSCErTdFX0L1HKb2h9HPw_7Xid0a0A';
+
+async function saveToSupabase(entry) {
+  try {
+    const res = await fetch(SUPA_URL + '/rest/v1/verlauf', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + SUPA_KEY,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        ts: entry.ts,
+        rkw: entry.rkw,
+        kunde: entry.kunde || '',
+        datum: entry.datum,
+        data: JSON.stringify(entry)
+      })
+    });
+    return res.ok;
+  } catch(e) { return false; }
+}
+
+async function loadFromSupabase() {
+  try {
+    const res = await fetch(SUPA_URL + '/rest/v1/verlauf?order=ts.desc&limit=100', {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+    });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return rows.map(r => JSON.parse(r.data));
+  } catch(e) { return null; }
+}
+
 function getHistory() {
   try { return JSON.parse(localStorage.getItem('rkw_history') || '[]'); } catch { return []; }
 }
@@ -1104,6 +1173,7 @@ function saveEntry() {
   const entry = {
     ts: Date.now(),
     rkw: activeRKW < 5 ? activeRKW + 1 : 1,
+    kunde: kundenName,
     datum: s.datum_neu,
     state: {...s},
     summary: {
@@ -1118,18 +1188,20 @@ function saveEntry() {
   h.unshift(entry);
   if (h.length > 50) h.pop();
   saveHistory(h);
+  saveToSupabase(entry);
   alert(`✅ RKW ${entry.rkw} – Eintrag für ${fmtDate(s.datum_neu)} gespeichert!`);
 }
 
 function renderHistoryPanel(mainEl) {
-  const h = getHistory();
+  loadFromSupabase().then(remote => {
+    if (remote && remote.length > 0) saveHistory(remote);
   mainEl.innerHTML = `
     <div class="section-label">📋 Gespeicherte Einträge</div>
     ${h.length === 0 ? '<div style="color:var(--muted);padding:20px;">Noch keine Einträge gespeichert.</div>' :
       h.map((e,i) => `
         <div class="history-entry" onclick="loadEntry(${i})">
           <div class="history-entry-header">
-            <span class="history-date">RKW ${e.rkw} – ${fmtDate(e.datum)}</span>
+            <span class="history-date">${e.kunde ? e.kunde + ' – ' : ''}RKW ${e.rkw} – ${fmtDate(e.datum)}</span>
             <span style="font-size:11px;color:var(--muted);">${new Date(e.ts).toLocaleString('de-DE')}</span>
           </div>
           <div class="history-stats">
@@ -1151,7 +1223,10 @@ function renderHistoryPanel(mainEl) {
       <button class="btn" onclick="clearHistory()">🗑 Verlauf löschen</button>
     </div>
   `;
+
+  });
 }
+
 
 function loadEntry(i) {
   const h = getHistory();
@@ -1159,6 +1234,7 @@ function loadEntry(i) {
   const rkwIdx = (e.rkw || 1) - 1;
   Object.assign(state[rkwIdx], e.state);
   activeRKW = rkwIdx;
+  if (e.kunde) kundenName = e.kunde;
   render();
 }
 
