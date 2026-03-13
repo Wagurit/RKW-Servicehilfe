@@ -714,6 +714,11 @@ function buildPanel(idx) {
           <label>Datum aktueller Besuch</label>
           <input id="i_${idx}_datum_neu" type="text" enterkeyhint="next" autocomplete="off" placeholder="TT.MM.JJJJ" value="${s.datum_neu}" onchange="upd(${idx},'datum_neu',this.value)">
         </div>
+        <div style="margin-top:8px;">
+          <button class="btn btn-primary" style="width:100%;font-size:13px;" onclick="neuerBesuch(${idx})">
+            🔄 Neuer Besuch – Datum &amp; Zähler übertragen
+          </button>
+        </div>
       </div>
     </div>  <div class="section-label">💧 Wasserwerte</div>
   <div class="grid-2">
@@ -1213,6 +1218,21 @@ function getHistory() {
 }
 function saveHistory(h) {
   localStorage.setItem('rkw_history', JSON.stringify(h));
+}
+
+function neuerBesuch(idx) {
+  const heute = todayStr();
+  // Alle RKWs: Datum und Zähler übertragen
+  for (let i = 0; i < RKW_COUNT; i++) {
+    const s = state[i];
+    // Datum: aktueller Besuch → letzter Besuch, heute → aktueller Besuch
+    s.datum_alt = s.datum_neu || heute;
+    s.datum_neu = heute;
+    // Zähler: jedes RKW einzeln
+    s.zaehler_alt = s.zaehler_neu || '';
+    s.zaehler_neu = '';
+  }
+  render();
 }
 
 function saveEntry() {
