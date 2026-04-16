@@ -393,8 +393,172 @@
     transition: left .3s;
   }
 </style>
+
+<script>
+// Enter-Taste springt zum nächsten Eingabefeld (nur Desktop, nicht Handy)
+// Handy: Nutzer tippt direkt auf nächstes Feld — kein Eingriff nötig
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter') return;
+  const tag = e.target.tagName.toLowerCase();
+  if (tag !== 'input') return;
+  // Auf reinem Touch-Handy ohne Tastatur nichts tun
+  // Auf iPad mit externer Tastatur SOLL Enter springen — daher nur blockieren wenn
+  // kein physisches Keyboard angeschlossen (pointerType check)
+  // Einfachste Lösung: immer springen, schadet auf Handy nicht da Enter dort "Fertig" auslöst
+  // und der Browser das Feld sowieso nicht wechselt ohne unser preventDefault
+  // Alle sichtbaren, aktivierten Input-Felder sammeln
+  const inputs = [...document.querySelectorAll('input:not([disabled]):not([type="hidden"])')].filter(el => {
+    const s = el.getBoundingClientRect();
+    return s.width > 0 && s.height > 0; // nur sichtbare
+  });
+  const idx = inputs.indexOf(e.target);
+  if (idx >= 0 && idx < inputs.length - 1) {
+    e.preventDefault();
+    inputs[idx + 1].focus();
+    inputs[idx + 1].select(); // Inhalt markieren für schnelles Überschreiben
+  }
+});
+</script>
+
+<script>
+// ── SERVICE WORKER ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    for (const r of regs) await r.unregister();
+    navigator.serviceWorker.register('./sw_rkw.js?v=1').then(reg => {
+      setInterval(() => reg.update(), 60 * 60 * 1000);
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            document.getElementById('rkwUpdateBanner').style.display = 'flex';
+          }
+        });
+      });
+    });
+    navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+  });
+}
+function rkwApplyUpdate() {
+  navigator.serviceWorker.getRegistration().then(reg => {
+    if (reg && reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    else location.reload();
+  });
+}
+
+// ── AUTH ──
+let rkwAuthToken = null;
+
+function rkwShowLogin() {
+  const ls = document.getElementById('rkwLoginScreen');
+  ls.style.display = 'flex';
+}
+function rkwHideLogin() {
+  document.getElementById('rkwLoginScreen').style.display = 'none';
+}
+
+async function rkwDoLogin() {
+  const email = document.getElementById('rkwEmail').value.trim();
+  const pw = document.getElementById('rkwPw').value;
+  const errEl = document.getElementById('rkwLoginError');
+  errEl.style.display = 'none';
+  if (!email || !pw) { errEl.textContent = 'Bitte E-Mail und Passwort eingeben.'; errEl.style.display = 'block'; return; }
+  try {
+    const r = await fetch('https://loekjdetgppmxnwnwxkm.supabase.co/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      headers: { apikey: 'sb_publishable_tvSCErTdFX0L1HKb2h9HPw_7Xid0a0A', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pw })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error_description || 'Login fehlgeschlagen');
+    rkwAuthToken = data.access_token;
+    localStorage.setItem('rkw_token', rkwAuthToken);
+    localStorage.setItem('rkw_refresh', data.refresh_token);
+    localStorage.setItem('rkw_token_exp', Date.now() + (data.expires_in * 1000));
+    rkwHideLogin();
+    render();
+  } catch(e) {
+    errEl.textContent = '❌ ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+async function rkwCheckSession() {
+  const token = localStorage.getItem('rkw_token');
+  const refresh = localStorage.getItem('rkw_refresh');
+  const exp = parseInt(localStorage.getItem('rkw_token_exp') || '0');
+  if (token && Date.now() < exp) {
+    rkwAuthToken = token;
+    rkwHideLogin();
+    render();
+  } else if (refresh) {
+    try {
+      const r = await fetch('https://loekjdetgppmxnwnwxkm.supabase.co/auth/v1/token?grant_type=refresh_token', {
+        method: 'POST',
+        headers: { apikey: 'sb_publishable_tvSCErTdFX0L1HKb2h9HPw_7Xid0a0A', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refresh })
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error();
+      rkwAuthToken = data.access_token;
+      localStorage.setItem('rkw_token', rkwAuthToken);
+      localStorage.setItem('rkw_refresh', data.refresh_token);
+      localStorage.setItem('rkw_token_exp', Date.now() + (data.expires_in * 1000));
+      rkwHideLogin();
+      render();
+    } catch(e) {
+      localStorage.removeItem('rkw_token');
+      localStorage.removeItem('rkw_refresh');
+      localStorage.removeItem('rkw_token_exp');
+      rkwShowLogin();
+    }
+  } else {
+    rkwShowLogin();
+  }
+}
+
+function rkwLogout() {
+  rkwAuthToken = null;
+  localStorage.removeItem('rkw_token');
+  localStorage.removeItem('rkw_refresh');
+  localStorage.removeItem('rkw_token_exp');
+  rkwShowLogin();
+}
+</script>
 </head>
 <body>
+<!-- UPDATE BANNER -->
+<div id="rkwUpdateBanner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:10000; background:#15803d; color:#fff; padding:10px 16px; align-items:center; justify-content:space-between; gap:10px; font-family:'Barlow',sans-serif; font-size:13px; font-weight:500;">
+  <span>🔄 Neue Version verfügbar</span>
+  <button onclick="rkwApplyUpdate()" style="background:#fff; color:#15803d; border:none; border-radius:6px; padding:6px 14px; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:13px; cursor:pointer;">JETZT AKTUALISIEREN</button>
+</div>
+
+<!-- LOGIN -->
+<div id="rkwLoginScreen" style="display:none; position:fixed; inset:0; background:#0369a1; z-index:9999; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:#fff; border-radius:16px; padding:28px 24px; width:100%; max-width:360px; box-shadow:0 8px 32px rgba(0,0,0,0.25);">
+    <div style="font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:24px; color:#0369a1; margin-bottom:4px; letter-spacing:-0.3px;">RKW <span style="font-weight:400; color:#7dd3fc;">Servicehilfe</span></div>
+    <div style="font-size:13px; color:#64748b; margin-bottom:24px; font-family:'Barlow',sans-serif;">Bitte anmelden um fortzufahren</div>
+    <div style="margin-bottom:12px;">
+      <label style="display:block; font-size:11px; font-weight:600; letter-spacing:.5px; color:#1e3a5f; margin-bottom:4px; text-transform:uppercase;">E-Mail</label>
+      <input type="email" id="rkwEmail" placeholder="name@firma.de"
+        style="width:100%; background:#f0f9ff; border:1px solid #7dd3fc; border-radius:6px; color:#0f172a; font-family:'DM Mono',monospace; font-size:14px; padding:10px; outline:none;">
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="display:block; font-size:11px; font-weight:600; letter-spacing:.5px; color:#1e3a5f; margin-bottom:4px; text-transform:uppercase;">Passwort</label>
+      <input type="password" id="rkwPw" placeholder="••••••••"
+        style="width:100%; background:#f0f9ff; border:1px solid #7dd3fc; border-radius:6px; color:#0f172a; font-family:'DM Mono',monospace; font-size:14px; padding:10px; outline:none;"
+        onkeydown="if(event.key==='Enter') rkwDoLogin()">
+    </div>
+    <div id="rkwLoginError" style="display:none; background:#fef2f2; border:1px solid #fca5a5; border-radius:6px; padding:10px; font-size:13px; color:#b91c1c; margin-bottom:12px; font-family:'Barlow',sans-serif;"></div>
+    <button onclick="rkwDoLogin()"
+      style="width:100%; padding:12px; border-radius:8px; background:#0369a1; color:#fff; border:none; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:16px; letter-spacing:0.5px; cursor:pointer;">
+      Anmelden
+    </button>
+  </div>
+</div>
+
+
 
 <div class="header">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 209.45454 155.34544" style="height:38px;width:auto;flex-shrink:0;">
@@ -1170,7 +1334,7 @@ function upd(idx, key, val) {
 
 // ── VERLAUF ───────────────────────────────────────────────────────────────
 const SUPA_URL = 'https://loekjdetgppmxnwnwxkm.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvZWtqZGV0Z3BwbXhud253eGttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTc5NzksImV4cCI6MjA4ODg5Mzk3OX0.gJfuuIR_AnMcYdJ2YwzccafCgBJ8IaEuYcqo74hybRk';
+const SUPA_KEY = 'sb_publishable_tvSCErTdFX0L1HKb2h9HPw_7Xid0a0A';
 
 async function saveToSupabase(entry) {
   try {
@@ -1179,7 +1343,7 @@ async function saveToSupabase(entry) {
       headers: {
         'Content-Type': 'application/json',
         'apikey': SUPA_KEY,
-        'Authorization': 'Bearer ' + SUPA_KEY,
+        'Authorization': 'Bearer ' + (rkwAuthToken || SUPA_KEY),
         'Prefer': 'return=minimal'
       },
       body: JSON.stringify({
@@ -1205,7 +1369,7 @@ async function saveToSupabase(entry) {
 async function loadFromSupabase() {
   try {
     const res = await fetch(SUPA_URL + '/rest/v1/verlauf?order=ts.desc&limit=100', {
-      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + (rkwAuthToken || SUPA_KEY) }
     });
     if (!res.ok) return null;
     const rows = await res.json();
@@ -1445,8 +1609,8 @@ function exportExcel() {
   URL.revokeObjectURL(url);
 }
 
-// Init
-render();
+// Init – erst Session prüfen, dann render()
+rkwCheckSession();
 </script>
 </body>
 </html>
