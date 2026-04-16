@@ -1,4 +1,4 @@
-const CACHE = 'rkw-v1';
+const CACHE = 'rkw-v2';
 const ASSETS = ['./', './index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
