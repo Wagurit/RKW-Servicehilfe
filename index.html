@@ -571,7 +571,8 @@ function rkwLogout() {
 </svg>
   <div class="logo">RKW <span>Dosier- & Wartungshilfe</span></div>
   <div class="header-right">
-
+    <span id="offlineIndicator" style="display:none; background:#b91c1c; color:#fff; border-radius:6px; padding:4px 10px; font-size:12px; font-weight:700; letter-spacing:.5px;">📵 OFFLINE</span>
+    <span id="offlineQueueBadge" style="color:#fde68a; font-size:12px; font-weight:600;"></span>
   </div>
 </div>
 
@@ -1336,7 +1337,40 @@ function upd(idx, key, val) {
 const SUPA_URL = 'https://loekjdetgppmxnwnwxkm.supabase.co';
 const SUPA_KEY = 'sb_publishable_tvSCErTdFX0L1HKb2h9HPw_7Xid0a0A';
 
-async function saveToSupabase(entry) {
+// ── OFFLINE QUEUE ─────────────────────────────────────────────────────────
+function getOfflineQueue() {
+  try { return JSON.parse(localStorage.getItem('rkw_offline_queue') || '[]'); } catch { return []; }
+}
+function saveOfflineQueue(q) {
+  localStorage.setItem('rkw_offline_queue', JSON.stringify(q));
+}
+function addToOfflineQueue(entry) {
+  const q = getOfflineQueue();
+  q.push(entry);
+  saveOfflineQueue(q);
+  updateOfflineBadge();
+}
+function updateOfflineBadge() {
+  const q = getOfflineQueue();
+  const badge = document.getElementById('offlineQueueBadge');
+  if (badge) badge.textContent = q.length > 0 ? `📤 ${q.length} ausstehend` : '';
+}
+async function flushOfflineQueue() {
+  const q = getOfflineQueue();
+  if (q.length === 0) return;
+  const failed = [];
+  for (const entry of q) {
+    const ok = await _pushToSupabase(entry);
+    if (!ok) failed.push(entry);
+  }
+  saveOfflineQueue(failed);
+  updateOfflineBadge();
+  if (failed.length === 0 && q.length > 0) {
+    console.log(`✅ ${q.length} offline Einträge synchronisiert`);
+  }
+}
+
+async function _pushToSupabase(entry) {
   try {
     const res = await fetch(SUPA_URL + '/rest/v1/verlauf', {
       method: 'POST',
@@ -1348,7 +1382,7 @@ async function saveToSupabase(entry) {
       },
       body: JSON.stringify({
         ts: entry.ts,
-        rkw: entry.rkw || 0,
+        rkw: 0,  // 0 = alle RKWs zusammen gespeichert
         kunde: entry.kunde || '',
         datum: entry.datum || '',
         data: JSON.stringify(entry)
@@ -1357,13 +1391,26 @@ async function saveToSupabase(entry) {
     if (!res.ok) {
       const err = await res.text();
       console.error('Supabase Fehler:', res.status, err);
-      alert('Supabase Fehler ' + res.status + ': ' + err);
     }
     return res.ok;
   } catch(e) {
-    console.error('Supabase Exception:', e);
     return false;
   }
+}
+
+async function saveToSupabase(entry) {
+  if (!navigator.onLine) {
+    addToOfflineQueue(entry);
+    return false;
+  }
+  const ok = await _pushToSupabase(entry);
+  if (!ok) {
+    addToOfflineQueue(entry);
+  } else {
+    // Beim erfolgreichen Speichern auch Queue leeren
+    await flushOfflineQueue();
+  }
+  return ok;
 }
 
 async function loadFromSupabase() {
@@ -1423,10 +1470,10 @@ function saveEntry() {
     kunde: kundenName,
     datum: s0.datum_neu,
     rkwData,
-    // Für Rückwärtskompatibilität beim Laden
-    rkw: activeRKW < 5 ? activeRKW + 1 : 1,
-    state: {...state[activeRKW < 5 ? activeRKW : 0]},
-    summary: rkwData[activeRKW < 5 ? activeRKW : 0].summary,
+    // Für Rückwärtskompatibilität: summary zeigt immer RKW1 (Index 0)
+    rkw: 0,  // 0 = Gesamteintrag alle RKWs
+    state: {...state[0]},
+    summary: rkwData[0].summary,
   };
   const h = getHistory();
   h.unshift(entry);
@@ -1451,17 +1498,23 @@ function renderHistoryPanel(mainEl) {
             <span class="history-date">${e.kunde ? e.kunde + ' – ' : ''}${fmtDate(e.datum)}</span>
             <span style="font-size:11px;color:var(--muted);">${new Date(e.ts).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>
           </div>
-          <div class="history-stats">
+        <div class="history-stats">
+            ${e.rkwData ? e.rkwData.filter(r=>r.summary.warns>0||r.summary.errs>0||r.summary.ez_lf).map(r=>`
+              <span style="font-size:10px;background:#e0f2fe;border-radius:4px;padding:2px 6px;">RKW${r.rkw}: EZ ${fmt(r.summary.ez_lf,2)}</span>
+            `).join('') : `
             <span>EZ LF: <b>${fmt(e.summary.ez_lf,2)}</b></span>
             <span>EZ °dH: <b>${fmt(e.summary.ez_dh,2)}</b></span>
-            <span>EZ Cl: <b>${fmt(e.summary.ez_cl,2)}</b></span>
-            <span>Prod: <b>${fmt(e.summary.prod_ul,0)} ml/m³</b></span>
             <span>Cl UW: <b>${e.summary.cl_uw} mg/l</b></span>
+            `}
           </div>
           <div class="history-badges">
-            ${e.summary.errs > 0 ? `<span class="mini-badge mini-err">⚠ ${e.summary.errs} Problem(e)</span>` : ''}
-            ${e.summary.warns > 0 ? `<span class="mini-badge mini-warn">△ ${e.summary.warns} Warnung(en)</span>` : ''}
-            ${e.summary.errs === 0 && e.summary.warns === 0 ? '<span class="mini-badge mini-ok">✓ Alles i.O.</span>' : ''}
+            ${(() => {
+              const totalErrs  = e.rkwData ? e.rkwData.reduce((a,r)=>a+r.summary.errs,0)  : (e.summary.errs||0);
+              const totalWarns = e.rkwData ? e.rkwData.reduce((a,r)=>a+r.summary.warns,0) : (e.summary.warns||0);
+              return (totalErrs > 0  ? `<span class="mini-badge mini-err">⚠ ${totalErrs} Problem(e)</span>` : '') +
+                     (totalWarns > 0 ? `<span class="mini-badge mini-warn">△ ${totalWarns} Warnung(en)</span>` : '') +
+                     (totalErrs === 0 && totalWarns === 0 ? '<span class="mini-badge mini-ok">✓ Alles i.O.</span>' : '');
+            })()}
           </div>
         </div>
       `).join('')
@@ -1611,6 +1664,99 @@ function exportExcel() {
 
 // Init – erst Session prüfen, dann render()
 rkwCheckSession();
+
+// ── ONLINE / OFFLINE ──────────────────────────────────────────────────────
+function updateOnlineStatus() {
+  const ind = document.getElementById('offlineIndicator');
+  if (!ind) return;
+  if (navigator.onLine) {
+    ind.style.display = 'none';
+    // Beim Zurückkommen online: Queue leeren
+    flushOfflineQueue();
+  } else {
+    ind.style.display = '';
+  }
+}
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+// Initialer Status
+document.addEventListener('DOMContentLoaded', () => {
+  updateOnlineStatus();
+  updateOfflineBadge();
+});
+// Fallback falls DOMContentLoaded bereits gefeuert
+setTimeout(() => { updateOnlineStatus(); updateOfflineBadge(); }, 100);
+
+// ── PULL-TO-REFRESH ───────────────────────────────────────────────────────
+(function initPullToRefresh() {
+  let startY = 0;
+  let pulling = false;
+  let indicator = null;
+
+  function getOrCreateIndicator() {
+    if (!indicator) {
+      indicator = document.createElement('div');
+      indicator.id = 'ptrIndicator';
+      indicator.style.cssText = [
+        'position:fixed', 'top:0', 'left:0', 'right:0',
+        'height:0', 'overflow:hidden', 'background:#0369a1',
+        'display:flex', 'align-items:center', 'justify-content:center',
+        'color:#fff', 'font-family:Barlow,sans-serif',
+        'font-size:13px', 'font-weight:600', 'letter-spacing:.5px',
+        'z-index:9998', 'transition:height .2s ease', 'text-align:center'
+      ].join(';');
+      document.body.appendChild(indicator);
+    }
+    return indicator;
+  }
+
+  document.addEventListener('touchstart', (e) => {
+    if (window.scrollY === 0) {
+      startY = e.touches[0].clientY;
+      pulling = true;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (e) => {
+    if (!pulling) return;
+    const dist = e.touches[0].clientY - startY;
+    if (dist < 10) return;
+    const ind = getOrCreateIndicator();
+    const pct = Math.min(dist / 80, 1);
+    ind.style.height = Math.min(dist * 0.5, 44) + 'px';
+    ind.textContent = pct < 1 ? '↓ Zum Aktualisieren ziehen' : '↑ Loslassen zum Aktualisieren';
+  }, { passive: true });
+
+  document.addEventListener('touchend', async (e) => {
+    if (!pulling) return;
+    pulling = false;
+    const dist = e.changedTouches[0].clientY - startY;
+    const ind = getOrCreateIndicator();
+    if (dist > 80) {
+      ind.style.height = '44px';
+      ind.textContent = '🔄 Aktualisiere…';
+      try {
+        await flushOfflineQueue();
+        if (navigator.onLine) {
+          const remote = await loadFromSupabase();
+          if (remote && remote.length > 0) {
+            saveHistory(remote);
+            if (activeRKW === 5) render();
+          }
+          ind.textContent = '✅ Aktualisiert';
+        } else {
+          ind.textContent = '📵 Offline – kein Update möglich';
+        }
+      } catch(e) {
+        ind.textContent = '❌ Fehler beim Aktualisieren';
+      }
+      setTimeout(() => { ind.style.height = '0'; }, 1200);
+    } else {
+      ind.style.height = '0';
+    }
+    startY = 0;
+  }, { passive: true });
+})();
 </script>
 </body>
 </html>
