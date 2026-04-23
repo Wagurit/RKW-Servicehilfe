@@ -531,6 +531,12 @@ function rkwLogout() {
   <button onclick="rkwApplyUpdate()" style="background:#fff; color:#15803d; border:none; border-radius:6px; padding:6px 14px; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:13px; cursor:pointer;">JETZT AKTUALISIEREN</button>
 </div>
 
+<!-- EDIT MODE BANNER -->
+<div id="editModeBanner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:9999; background:#b45309; color:#fff; padding:10px 16px; align-items:center; justify-content:space-between; gap:10px; font-family:'Barlow',sans-serif; font-size:13px; font-weight:500;">
+  <span>✏️ Edit-Modus – Änderungen überschreiben den bestehenden Eintrag</span>
+  <button onclick="cancelEdit()" style="background:#fff; color:#b45309; border:none; border-radius:6px; padding:6px 14px; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:13px; cursor:pointer;">ABBRECHEN</button>
+</div>
+
 <!-- LOGIN -->
 <div id="rkwLoginScreen" style="display:none; position:fixed; inset:0; background:#0369a1; z-index:9999; align-items:center; justify-content:center; padding:20px;">
   <div style="background:#fff; border-radius:16px; padding:28px 24px; width:100%; max-width:360px; box-shadow:0 8px 32px rgba(0,0,0,0.25);">
@@ -590,10 +596,12 @@ function rkwLogout() {
 
 <script>
 // ── STATE ─────────────────────────────────────────────────────────────────
-const RKW_COUNT = 5;
+const RKW_COUNT = 8;
 let activeRKW = 0;
 let kundenName = '';
-let rkwNames = ['','','','',''];
+let rkwNames = ['','','','','','','',''];
+let pendingEditIndex = -1;  // -1 = kein Edit-Modus, sonst Index im History-Array
+let pendingEditTs = null;   // ts des zu überschreibenden Eintrags
 
 // Default-Werte aus Excel
 const defaults = {
@@ -1473,55 +1481,167 @@ function saveEntry() {
     summary: rkwData[0].summary,
   };
   const h = getHistory();
-  h.unshift(entry);
-  if (h.length > 50) h.pop();
-  saveHistory(h);
-  saveToSupabase(entry);
-  const gesamt_warns = rkwData.reduce((a,r)=>a+r.summary.warns,0);
-  const gesamt_errs  = rkwData.reduce((a,r)=>a+r.summary.errs,0);
-  alert(`✅ Alle RKWs für ${kundenName ? kundenName + ' – ' : ''}${fmtDate(s0.datum_neu)} gespeichert!\n⚠ ${gesamt_warns} Warnung(en) / ✗ ${gesamt_errs} Problem(e)`);
+  // Edit-Modus: bestehenden Eintrag überschreiben
+  if (pendingEditIndex >= 0 && pendingEditIndex < h.length && h[pendingEditIndex].ts === pendingEditTs) {
+    entry.ts = pendingEditTs; // ts beibehalten damit Supabase-Delete/Re-Insert klappt
+    h[pendingEditIndex] = entry;
+    saveHistory(h);
+    // Supabase: alten löschen, neuen einfügen
+    deleteFromSupabase(pendingEditTs).then(() => saveToSupabase(entry));
+    pendingEditIndex = -1;
+    pendingEditTs = null;
+    const banner = document.getElementById('editModeBanner');
+    if (banner) banner.style.display = 'none';
+    alert(`✅ Eintrag aktualisiert für ${kundenName ? kundenName + ' – ' : ''}${fmtDate(s0.datum_neu)}`);
+  } else {
+    // Normal: neuer Eintrag
+    h.unshift(entry);
+    if (h.length > 50) h.pop();
+    saveHistory(h);
+    saveToSupabase(entry);
+    const gesamt_warns = rkwData.reduce((a,r)=>a+r.summary.warns,0);
+    const gesamt_errs  = rkwData.reduce((a,r)=>a+r.summary.errs,0);
+    alert(`✅ Alle RKWs für ${kundenName ? kundenName + ' – ' : ''}${fmtDate(s0.datum_neu)} gespeichert!\n⚠ ${gesamt_warns} Warnung(en) / ✗ ${gesamt_errs} Problem(e)`);
+  }
 }
+
+// ── FUZZY SUCHE ──────────────────────────────────────────────────────────
+function normalize(str) {
+  return (str || '').toLowerCase()
+    .replace(/[äÄ]/g,'a').replace(/[öÖ]/g,'o').replace(/[üÜ]/g,'u')
+    .replace(/ß/g,'ss').replace(/[^a-z0-9]/g,'');
+}
+function fuzzyScore(needle, haystack) {
+  const n = normalize(needle);
+  const h = normalize(haystack);
+  if (!n) return 1;
+  if (h.includes(n)) return 2;
+  // Zeichen-für-Zeichen Übereinstimmung
+  let ni = 0;
+  for (let hi = 0; hi < h.length && ni < n.length; hi++) {
+    if (h[hi] === n[ni]) ni++;
+  }
+  return ni / n.length;
+}
+
+let historySearchQuery = '';
 
 function renderHistoryPanel(mainEl) {
   loadFromSupabase().then(remote => {
     if (remote && remote.length > 0) saveHistory(remote);
-    const h = getHistory();
-    mainEl.innerHTML = `
+    _renderHistoryList(mainEl, getHistory());
+  });
+  _renderHistoryList(mainEl, getHistory()); // sofort aus localStorage zeigen
+}
+
+function _renderHistoryList(mainEl, h) {
+  // Suche anwenden
+  let filtered = h.map((e, i) => ({ e, i }));
+  if (historySearchQuery.trim()) {
+    filtered = filtered
+      .map(({e, i}) => ({ e, i, score: fuzzyScore(historySearchQuery, e.kunde || '') }))
+      .filter(x => x.score > 0.3)
+      .sort((a, b) => b.score - a.score);
+  }
+
+  mainEl.innerHTML = `
     <div class="section-label">📋 Gespeicherte Einträge</div>
-    ${h.length === 0 ? '<div style="color:var(--muted);padding:20px;">Noch keine Einträge gespeichert.</div>' :
-      h.map((e,i) => `
-        <div class="history-entry" onclick="loadEntry(${i})">
-          <div class="history-entry-header">
+    <div style="margin-bottom:12px;">
+      <input id="historySearch" type="text" placeholder="🔍 Kunde suchen…" value="${historySearchQuery}"
+        oninput="historySearchQuery=this.value; _renderHistoryList(document.getElementById('main'), getHistory())"
+        style="width:100%;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:8px;
+               color:#0f172a;font-family:'Barlow',sans-serif;font-size:14px;padding:9px 12px;outline:none;">
+    </div>
+    ${filtered.length === 0 ? '<div style="color:var(--muted);padding:20px;">Keine Einträge gefunden.</div>' :
+      filtered.map(({e, i}) => {
+        const totalErrs  = e.rkwData ? e.rkwData.reduce((a,r)=>a+r.summary.errs,0)  : (e.summary?.errs||0);
+        const totalWarns = e.rkwData ? e.rkwData.reduce((a,r)=>a+r.summary.warns,0) : (e.summary?.warns||0);
+        return `
+        <div class="history-entry">
+          <div class="history-entry-header" onclick="loadEntry(${i})" style="cursor:pointer;">
             <span class="history-date">${e.kunde ? e.kunde + ' – ' : ''}${fmtDate(e.datum)}</span>
             <span style="font-size:11px;color:var(--muted);">${new Date(e.ts).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>
           </div>
-        <div class="history-stats">
-            ${e.rkwData ? e.rkwData.filter(r=>r.summary.warns>0||r.summary.errs>0||r.summary.ez_lf).map(r=>`
+          <div class="history-stats" onclick="loadEntry(${i})" style="cursor:pointer;">
+            ${e.rkwData ? e.rkwData.filter(r=>r.summary.ez_lf).map(r=>`
               <span style="font-size:10px;background:#e0f2fe;border-radius:4px;padding:2px 6px;">RKW${r.rkw}: EZ ${fmt(r.summary.ez_lf,2)}</span>
             `).join('') : `
-            <span>EZ LF: <b>${fmt(e.summary.ez_lf,2)}</b></span>
-            <span>EZ °dH: <b>${fmt(e.summary.ez_dh,2)}</b></span>
-            <span>Cl UW: <b>${e.summary.cl_uw} mg/l</b></span>
+              <span>EZ LF: <b>${fmt(e.summary?.ez_lf,2)}</b></span>
+              <span>Cl UW: <b>${e.summary?.cl_uw} mg/l</b></span>
             `}
           </div>
-          <div class="history-badges">
-            ${(() => {
-              const totalErrs  = e.rkwData ? e.rkwData.reduce((a,r)=>a+r.summary.errs,0)  : (e.summary.errs||0);
-              const totalWarns = e.rkwData ? e.rkwData.reduce((a,r)=>a+r.summary.warns,0) : (e.summary.warns||0);
-              return (totalErrs > 0  ? `<span class="mini-badge mini-err">⚠ ${totalErrs} Problem(e)</span>` : '') +
-                     (totalWarns > 0 ? `<span class="mini-badge mini-warn">△ ${totalWarns} Warnung(en)</span>` : '') +
-                     (totalErrs === 0 && totalWarns === 0 ? '<span class="mini-badge mini-ok">✓ Alles i.O.</span>' : '');
-            })()}
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+            <div class="history-badges">
+              ${totalErrs > 0  ? `<span class="mini-badge mini-err">⚠ ${totalErrs} Problem(e)</span>` : ''}
+              ${totalWarns > 0 ? `<span class="mini-badge mini-warn">△ ${totalWarns} Warnung(en)</span>` : ''}
+              ${totalErrs === 0 && totalWarns === 0 ? '<span class="mini-badge mini-ok">✓ Alles i.O.</span>' : ''}
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+              <button onclick="editEntry(${i})" style="background:#e0f2fe;border:1px solid #7dd3fc;color:#0369a1;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;">✏️ Edit</button>
+              <button onclick="deleteEntry(${i})" style="background:#fef2f2;border:1px solid #fca5a5;color:#b91c1c;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;">🗑 Löschen</button>
+            </div>
           </div>
-        </div>
-      `).join('')
+        </div>`;
+      }).join('')
     }
     <div style="margin-top:16px;">
-      <button class="btn" onclick="clearHistory()">🗑 Verlauf löschen</button>
+      <button class="btn" onclick="clearHistory()">🗑 Alles löschen</button>
     </div>
   `;
+}
 
-  });
+function editEntry(i) {
+  // Lädt Eintrag in State (wie loadEntry) aber überschreibt beim nächsten Speichern
+  const h = getHistory();
+  const e = h[i];
+  if (e.rkwData) {
+    e.rkwData.forEach((rd, idx) => {
+      if (idx < RKW_COUNT) Object.assign(state[idx], rd.state);
+    });
+    activeRKW = 0;
+  } else {
+    const rkwIdx = Math.max(0, (e.rkw || 1) - 1);
+    Object.assign(state[rkwIdx], e.state);
+    activeRKW = rkwIdx;
+  }
+  if (e.rkwNames) rkwNames = [...e.rkwNames];
+  if (e.kunde) {
+    kundenName = e.kunde;
+    const knEl = document.getElementById('kundenNameInput');
+    if (knEl) knEl.value = kundenName;
+  }
+  // Merken welchen Index wir editieren — beim Speichern überschreiben statt neu anlegen
+  pendingEditIndex = i;
+  pendingEditTs = e.ts;
+  render();
+  // Hinweis anzeigen
+  setTimeout(() => {
+    const banner = document.getElementById('editModeBanner');
+    if (banner) banner.style.display = 'flex';
+  }, 100);
+}
+
+function deleteEntry(i) {
+  if (!confirm('Diesen Eintrag wirklich löschen?')) return;
+  const h = getHistory();
+  const e = h[i];
+  h.splice(i, 1);
+  saveHistory(h);
+  // Aus Supabase löschen (via ts)
+  if (e.ts) deleteFromSupabase(e.ts);
+  _renderHistoryList(document.getElementById('main'), h);
+}
+
+async function deleteFromSupabase(ts) {
+  try {
+    await fetch(`${SUPA_URL}/rest/v1/verlauf?ts=eq.${ts}`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + (rkwAuthToken || SUPA_KEY)
+      }
+    });
+  } catch(e) { console.error('Delete Supabase:', e); }
 }
 
 function loadEntry(i) {
@@ -1555,6 +1675,13 @@ function clearHistory() {
   }
 }
 
+function cancelEdit() {
+  pendingEditIndex = -1;
+  pendingEditTs = null;
+  const banner = document.getElementById('editModeBanner');
+  if (banner) banner.style.display = 'none';
+}
+
 function showHistory() {
   activeRKW = 5;
   render();
@@ -1566,7 +1693,7 @@ function closeHistory() {
 
 // ── EXCEL EXPORT ──────────────────────────────────────────────────────────
 function exportExcel() {
-  const idx = activeRKW < 5 ? activeRKW : 0;
+  const idx = activeRKW < RKW_COUNT ? activeRKW : 0;
   const s = state[idx];
   const r = calc(s);
   const rkwNr = idx + 1;
