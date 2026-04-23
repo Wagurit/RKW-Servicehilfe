@@ -423,10 +423,8 @@ document.addEventListener('keydown', function(e) {
 <script>
 // ── SERVICE WORKER ──
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
-    const regs = await navigator.serviceWorker.getRegistrations();
-    for (const r of regs) await r.unregister();
-    navigator.serviceWorker.register('./sw_rkw.js?v=2').then(reg => {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw_rkw.js?v=3').then(reg => {
       setInterval(() => reg.update(), 60 * 60 * 1000);
       reg.addEventListener('updatefound', () => {
         const nw = reg.installing;
@@ -437,7 +435,6 @@ if ('serviceWorker' in navigator) {
         });
       });
     });
-    navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
   });
 }
 function rkwApplyUpdate() {
